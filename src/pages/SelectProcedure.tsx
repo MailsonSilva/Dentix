@@ -1,0 +1,56 @@
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { cn } from "@/lib/utils";
+
+const procedures = [
+  { id: "whitening", name: "Clareamento Dental" },
+  { id: "restoration", name: "Restauração estética" },
+];
+
+const SelectProcedure = () => {
+  const navigate = useNavigate();
+  const [selectedProcedure, setSelectedProcedure] = useState<string | null>(
+    null,
+  );
+
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-background p-4">
+      <Card className="w-full max-w-md">
+        <CardHeader>
+          <CardTitle className="text-center text-2xl">
+            Selecione o procedimento
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="flex flex-col items-center gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full">
+            {procedures.map((proc) => (
+              <button
+                key={proc.id}
+                onClick={() => setSelectedProcedure(proc.id)}
+                className={cn(
+                  "p-4 border rounded-lg text-center transition-colors",
+                  selectedProcedure === proc.id
+                    ? "bg-primary text-primary-foreground border-primary"
+                    : "hover:bg-muted",
+                )}
+              >
+                {proc.name}
+              </button>
+            ))}
+          </div>
+          <Button
+            className="w-full"
+            disabled={!selectedProcedure}
+            onClick={() => navigate("/processing")}
+          >
+            Gerar Simulação
+          </Button>
+        </CardContent>
+      </Card>
+    </div>
+  );
+};
+
+export default SelectProcedure;
