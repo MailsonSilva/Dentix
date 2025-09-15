@@ -41,6 +41,11 @@ const Processing = () => {
           },
         );
 
+        // Log para depuração: mostra a resposta completa do n8n
+        console.log("--- RESPOSTA RECEBIDA DO N8N ---");
+        console.log(response.data);
+        console.log("------------------------------------");
+
         const simulatedImageUrl = response.data.simulatedImageUrl;
 
         if (simulatedImageUrl) {
