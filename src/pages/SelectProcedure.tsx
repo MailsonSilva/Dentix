@@ -34,7 +34,7 @@ const SelectProcedure = () => {
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center space-y-4">
-          <img src="/logo.png" alt="Dentix Logo" className="h-10 mx-auto" />
+          <img src="/logo.png" alt="Dentix Logo" className="w-40 mx-auto" />
           <CardTitle className="text-2xl">
             Selecione o procedimento
           </CardTitle>
