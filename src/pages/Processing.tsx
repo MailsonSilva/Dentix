@@ -22,8 +22,13 @@ const Processing = () => {
       formData.append("procedureId", procedureId);
 
       try {
+        const webhookUrl = import.meta.env.VITE_N8N_WEBHOOK_URL;
+        if (!webhookUrl || webhookUrl === "COLE_A_URL_DO_SEU_WEBHOOK_DO_N8N_AQUI") {
+            throw new Error("A URL do webhook do n8n não está configurada no arquivo .env.");
+        }
+
         const response = await axios.post(
-          import.meta.env.VITE_N8N_WEBHOOK_URL,
+          webhookUrl,
           formData,
           {
             headers: {
@@ -43,11 +48,23 @@ const Processing = () => {
             },
           });
         } else {
-          throw new Error("URL da imagem simulada não encontrada na resposta.");
+          throw new Error("URL da imagem simulada não encontrada na resposta do n8n.");
         }
       } catch (error) {
-        console.error("Erro ao processar a imagem:", error);
-        showError("Falha ao gerar a simulação. Tente novamente.");
+        console.error("--- ERRO AO PROCESSAR A IMAGEM ---");
+        if (axios.isAxiosError(error)) {
+          console.error("Mensagem de erro:", error.message);
+          console.error("Status do erro:", error.response?.status);
+          console.error("Dados da resposta:", error.response?.data);
+          if (error.code === "ERR_NETWORK") {
+             console.error("Dica: Isso pode ser um problema de CORS no seu servidor n8n ou a URL do webhook está incorreta.");
+          }
+        } else {
+            console.error("Erro não relacionado ao Axios:", error);
+        }
+        console.error("------------------------------------");
+
+        showError("Falha na simulação. Verifique o console para detalhes.");
         navigate("/select-procedure", { state: { imageFile, imagePreview } });
       }
     };
