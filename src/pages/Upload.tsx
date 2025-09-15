@@ -7,15 +7,25 @@ import { useNavigate } from "react-router-dom";
 const Upload = () => {
   const navigate = useNavigate();
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [imageFile, setImageFile] = useState<File | null>(null);
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
+      setImageFile(file);
       const reader = new FileReader();
       reader.onloadend = () => {
         setImagePreview(reader.result as string);
       };
       reader.readAsDataURL(file);
+    }
+  };
+
+  const handleNext = () => {
+    if (imageFile && imagePreview) {
+      navigate("/select-procedure", {
+        state: { imageFile, imagePreview },
+      });
     }
   };
 
@@ -61,7 +71,7 @@ const Upload = () => {
             <Button
               className="w-full"
               disabled={!imagePreview}
-              onClick={() => navigate("/select-procedure")}
+              onClick={handleNext}
             >
               Avançar
             </Button>

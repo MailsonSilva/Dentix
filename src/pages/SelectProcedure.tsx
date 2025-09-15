@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 
 const procedures = [
@@ -11,9 +11,24 @@ const procedures = [
 
 const SelectProcedure = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const { imageFile, imagePreview } = location.state || {};
+
   const [selectedProcedure, setSelectedProcedure] = useState<string | null>(
     null,
   );
+
+  const handleGenerate = () => {
+    if (selectedProcedure && imageFile && imagePreview) {
+      navigate("/processing", {
+        state: {
+          imageFile,
+          imagePreview,
+          procedureId: selectedProcedure,
+        },
+      });
+    }
+  };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
@@ -43,7 +58,7 @@ const SelectProcedure = () => {
           <Button
             className="w-full"
             disabled={!selectedProcedure}
-            onClick={() => navigate("/processing")}
+            onClick={handleGenerate}
           >
             Gerar Simulação
           </Button>

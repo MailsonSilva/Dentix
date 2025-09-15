@@ -1,9 +1,11 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 
 const Result = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const { originalImage, simulatedImage } = location.state || {};
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
@@ -18,7 +20,7 @@ const Result = () => {
             <div className="text-center">
               <h3 className="text-lg font-semibold mb-2">Antes</h3>
               <img
-                src="https://via.placeholder.com/400x300.png?text=Original"
+                src={originalImage || "https://via.placeholder.com/400x300.png?text=Original"}
                 alt="Antes"
                 className="rounded-lg w-full"
               />
@@ -26,7 +28,7 @@ const Result = () => {
             <div className="text-center">
               <h3 className="text-lg font-semibold mb-2">Depois</h3>
               <img
-                src="https://via.placeholder.com/400x300.png?text=Simulado"
+                src={simulatedImage || "https://via.placeholder.com/400x300.png?text=Simulado"}
                 alt="Depois"
                 className="rounded-lg w-full"
               />
