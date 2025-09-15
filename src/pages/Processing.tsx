@@ -17,22 +17,23 @@ const Processing = () => {
     }
 
     const processImage = async () => {
-      const formData = new FormData();
-      formData.append("file", imageFile);
-      formData.append("procedureId", procedureId);
-
       try {
         const webhookUrl = import.meta.env.VITE_N8N_WEBHOOK_URL;
         if (!webhookUrl || webhookUrl === "COLE_A_URL_DO_SEU_WEBHOOK_DO_N8N_AQUI") {
             throw new Error("A URL do webhook do n8n não está configurada no arquivo .env.");
         }
 
+        // Adiciona o procedureId como um parâmetro de busca na URL
+        const urlWithParams = new URL(webhookUrl);
+        urlWithParams.searchParams.append("procedureId", procedureId);
+
         const response = await axios.post(
-          webhookUrl,
-          formData,
+          urlWithParams.toString(),
+          imageFile, // Envia o arquivo binário diretamente no corpo
           {
             headers: {
-              "Content-Type": "multipart/form-data",
+              // Define o Content-Type com base no tipo do arquivo
+              "Content-Type": imageFile.type,
             },
           },
         );
