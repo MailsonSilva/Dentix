@@ -22,9 +22,12 @@ const Login = () => {
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <Card className="w-full max-w-sm">
-        <CardHeader className="text-center">
-          <CardTitle className="text-2xl">Acesse sua conta</CardTitle>
-          <CardDescription>Bem-vindo ao Dentix</CardDescription>
+        <CardHeader className="text-center space-y-4">
+          <img src="/logo.png" alt="Dentix Logo" className="h-10 mx-auto" />
+          <div>
+            <CardTitle className="text-2xl">Acesse sua conta</CardTitle>
+            <CardDescription>Bem-vindo ao Dentix</CardDescription>
+          </div>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleLogin}>

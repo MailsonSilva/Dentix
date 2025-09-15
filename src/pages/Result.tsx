@@ -15,8 +15,9 @@ const Result = () => {
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <Card className="w-full max-w-4xl">
-        <CardHeader>
-          <CardTitle className="text-center text-2xl">
+        <CardHeader className="text-center space-y-4">
+          <img src="/logo.png" alt="Dentix Logo" className="h-10 mx-auto" />
+          <CardTitle className="text-2xl">
             Resultado da Simulação
           </CardTitle>
         </CardHeader>

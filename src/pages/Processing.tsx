@@ -89,6 +89,7 @@ const Processing = () => {
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-background p-4">
       <div className="text-center">
+        <img src="/logo.png" alt="Dentix Logo" className="h-12 mx-auto mb-8" />
         <Loader2 className="h-16 w-16 animate-spin text-primary mx-auto mb-6" />
         <h1 className="text-3xl font-bold mb-2 text-foreground">
           Gerando simulação…
