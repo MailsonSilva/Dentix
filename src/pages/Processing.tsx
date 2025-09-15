@@ -18,7 +18,6 @@ const Processing = () => {
 
     const processImage = async () => {
       const formData = new FormData();
-      // O n8n espera que o arquivo binário tenha a chave "data"
       formData.append("data", imageFile);
 
       try {
@@ -36,8 +35,9 @@ const Processing = () => {
           {
             headers: {
               // O axios define o Content-Type como multipart/form-data automaticamente
-              // quando você passa um objeto FormData.
             },
+            // Aumenta o tempo limite para 60 segundos (60000 ms)
+            timeout: 60000,
           },
         );
 
@@ -59,15 +59,21 @@ const Processing = () => {
           console.error("Mensagem de erro:", error.message);
           console.error("Status do erro:", error.response?.status);
           console.error("Dados da resposta:", error.response?.data);
-          if (error.code === "ERR_NETWORK") {
+          if (error.code === 'ECONNABORTED') {
+            console.error("Dica: A requisição demorou demais e foi cancelada (timeout).");
+            showError("A simulação demorou mais que o esperado. Tente novamente.");
+          } else if (error.code === "ERR_NETWORK") {
              console.error("Dica: Isso pode ser um problema de CORS no seu servidor n8n ou a URL do webhook está incorreta.");
+             showError("Falha na comunicação com o servidor. Verifique o console.");
+          } else {
+            showError("Falha na simulação. Verifique o console para detalhes.");
           }
         } else {
             console.error("Erro não relacionado ao Axios:", error);
+            showError("Ocorreu um erro inesperado. Verifique o console.");
         }
         console.error("------------------------------------");
-
-        showError("Falha na simulação. Verifique o console para detalhes.");
+        
         navigate("/select-procedure", { state: { imageFile, imagePreview } });
       }
     };
