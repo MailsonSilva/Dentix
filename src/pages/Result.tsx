@@ -1,11 +1,16 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 
 const Result = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { originalImage, simulatedImage } = location.state || {};
+  const [simulatedImageError, setSimulatedImageError] = useState(false);
+
+  const placeholderSimulated = "https://via.placeholder.com/400x300.png?text=Simulado";
+  const placeholderOriginal = "https://via.placeholder.com/400x300.png?text=Original";
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
@@ -20,7 +25,7 @@ const Result = () => {
             <div className="text-center">
               <h3 className="text-lg font-semibold mb-2">Antes</h3>
               <img
-                src={originalImage || "https://via.placeholder.com/400x300.png?text=Original"}
+                src={originalImage || placeholderOriginal}
                 alt="Antes"
                 className="rounded-lg w-full"
               />
@@ -28,9 +33,10 @@ const Result = () => {
             <div className="text-center">
               <h3 className="text-lg font-semibold mb-2">Depois</h3>
               <img
-                src={simulatedImage || "https://via.placeholder.com/400x300.png?text=Simulado"}
+                src={simulatedImageError ? placeholderSimulated : simulatedImage || placeholderSimulated}
                 alt="Depois"
                 className="rounded-lg w-full"
+                onError={() => setSimulatedImageError(true)}
               />
             </div>
           </div>
