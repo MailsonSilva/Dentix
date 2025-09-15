@@ -22,8 +22,10 @@ const Processing = () => {
 
       try {
         const webhookUrl = import.meta.env.VITE_N8N_WEBHOOK_URL;
-        if (!webhookUrl || webhookUrl === "COLE_A_URL_DO_SEU_WEBHOOK_DO_N8N_AQUI") {
-            throw new Error("A URL do webhook do n8n não está configurada no arquivo .env.");
+        if (!webhookUrl) {
+          throw new Error(
+            "A variável de ambiente VITE_N8N_WEBHOOK_URL não foi encontrada. Verifique a configuração no painel da Vercel.",
+          );
         }
 
         const urlWithParams = new URL(webhookUrl);
@@ -56,7 +58,9 @@ const Processing = () => {
             },
           });
         } else {
-          throw new Error("URL da imagem simulada não encontrada na resposta do n8n.");
+          throw new Error(
+            "URL da imagem simulada não encontrada na resposta do n8n.",
+          );
         }
       } catch (error) {
         console.error("--- ERRO AO PROCESSAR A IMAGEM ---");
@@ -64,21 +68,29 @@ const Processing = () => {
           console.error("Mensagem de erro:", error.message);
           console.error("Status do erro:", error.response?.status);
           console.error("Dados da resposta:", error.response?.data);
-          if (error.code === 'ECONNABORTED') {
-            console.error("Dica: A requisição demorou demais e foi cancelada (timeout).");
-            showError("A simulação demorou mais que o esperado. Tente novamente.");
+          if (error.code === "ECONNABORTED") {
+            console.error(
+              "Dica: A requisição demorou demais e foi cancelada (timeout).",
+            );
+            showError(
+              "A simulação demorou mais que o esperado. Tente novamente.",
+            );
           } else if (error.code === "ERR_NETWORK") {
-             console.error("Dica: Isso pode ser um problema de CORS no seu servidor n8n ou a URL do webhook está incorreta.");
-             showError("Falha na comunicação com o servidor. Verifique o console.");
+            console.error(
+              "Dica: Isso pode ser um problema de CORS no seu servidor n8n ou a URL do webhook está incorreta.",
+            );
+            showError(
+              "Falha na comunicação com o servidor. Verifique o console.",
+            );
           } else {
             showError("Falha na simulação. Verifique o console para detalhes.");
           }
         } else {
-            console.error("Erro não relacionado ao Axios:", error);
-            showError("Ocorreu um erro inesperado. Verifique o console.");
+          console.error("Erro não relacionado ao Axios:", error);
+          showError("Ocorreu um erro inesperado. Verifique o console.");
         }
         console.error("------------------------------------");
-        
+
         navigate("/select-procedure", { state: { imageFile, imagePreview } });
       }
     };
