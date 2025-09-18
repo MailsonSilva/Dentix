@@ -33,7 +33,7 @@ const Processing = () => {
         const webhookUrl = import.meta.env.VITE_N8N_WEBHOOK_URL;
         if (!webhookUrl) {
           throw new Error(
-            "A variável de ambiente VITE_N8N_WEBHOOK_URL não foi encontrada. Verifique a configuração no painel da Vercel.",
+            "VITE_N8N_WEBHOOK_URL não encontrada. Se estiver rodando localmente, crie um arquivo .env e adicione a variável. Se estiver na Vercel, verifique as Environment Variables no painel do projeto.",
           );
         }
 
