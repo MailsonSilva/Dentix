@@ -9,6 +9,15 @@ const Processing = () => {
   const location = useLocation();
   const { imageFile, imagePreview, procedureId } = location.state || {};
 
+  // Função para converter um arquivo para base64
+  const toBase64 = (file: File): Promise<string> =>
+    new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = (error) => reject(error);
+    });
+
   useEffect(() => {
     if (!imageFile || !procedureId) {
       showError("Dados da simulação ausentes. Tente novamente.");
@@ -17,10 +26,10 @@ const Processing = () => {
     }
 
     const processImage = async () => {
-      const formData = new FormData();
-      formData.append("data", imageFile);
-
       try {
+        // Converte a imagem para base64 antes de enviar
+        const base64Image = await toBase64(imageFile);
+
         const webhookUrl = import.meta.env.VITE_N8N_WEBHOOK_URL;
         if (!webhookUrl) {
           throw new Error(
@@ -31,19 +40,20 @@ const Processing = () => {
         const urlWithParams = new URL(webhookUrl);
         urlWithParams.searchParams.append("procedureId", procedureId);
 
+        // Envia um JSON com a imagem em base64
         const response = await axios.post(
           urlWithParams.toString(),
-          formData,
+          {
+            imageData: base64Image,
+          },
           {
             headers: {
-              // O axios define o Content-Type como multipart/form-data automaticamente
+              "Content-Type": "application/json",
             },
-            // Aumenta o tempo limite para 60 segundos (60000 ms)
-            timeout: 60000,
+            timeout: 60000, // Aumenta o tempo limite para 60 segundos
           },
         );
 
-        // Log para depuração: mostra a resposta completa do n8n
         console.log("--- RESPOSTA RECEBIDA DO N8N ---");
         console.log(response.data);
         console.log("------------------------------------");
