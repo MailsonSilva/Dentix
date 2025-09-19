@@ -22,23 +22,27 @@ const Result = () => {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
             <div className="text-center">
-              <h3 className="text-lg font-semibold mb-2">Antes</h3>
-              <img
-                src={originalImage || placeholderOriginal}
-                alt="Antes"
-                className="rounded-lg w-full"
-              />
+              <h3 className="text-lg font-semibold mb-2">Situação Atual</h3>
+              <div className="aspect-[4/5] overflow-hidden rounded-lg border">
+                <img
+                  src={originalImage || placeholderOriginal}
+                  alt="Situação Atual"
+                  className="w-full h-full object-cover"
+                />
+              </div>
             </div>
             <div className="text-center">
-              <h3 className="text-lg font-semibold mb-2">Depois</h3>
-              <img
-                src={simulatedImageError ? placeholderSimulated : simulatedImage || placeholderSimulated}
-                alt="Depois"
-                className="rounded-lg w-full"
-                onError={() => setSimulatedImageError(true)}
-              />
+              <h3 className="text-lg font-semibold mb-2">Resultado Potencial</h3>
+              <div className="aspect-[4/5] overflow-hidden rounded-lg border">
+                <img
+                  src={simulatedImageError ? placeholderSimulated : simulatedImage || placeholderSimulated}
+                  alt="Resultado Potencial"
+                  className="w-full h-full object-cover"
+                  onError={() => setSimulatedImageError(true)}
+                />
+              </div>
             </div>
           </div>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
