@@ -7,6 +7,8 @@ import { cn } from "@/lib/utils";
 const procedures = [
   { id: "whitening", name: "Clareamento Dental" },
   { id: "restoration", name: "Restauração estética" },
+  { id: "alignment", name: "Alinhamento Dental" },
+  { id: "implants", name: "Implantes Dentários" },
 ];
 
 const SelectProcedure = () => {
