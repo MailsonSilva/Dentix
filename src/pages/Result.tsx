@@ -9,8 +9,8 @@ const Result = () => {
   const { originalImage, simulatedImage } = location.state || {};
   const [simulatedImageError, setSimulatedImageError] = useState(false);
 
-  const placeholderSimulated = "https://via.placeholder.com/400x300.png?text=Simulado";
-  const placeholderOriginal = "https://via.placeholder.com/400x300.png?text=Original";
+  const placeholderSimulated = "/placeholder.svg";
+  const placeholderOriginal = "/placeholder.svg";
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">

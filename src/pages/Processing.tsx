@@ -82,7 +82,8 @@ const Processing = () => {
           simulatedImageUrl = `data:image/jpeg;base64,${simulatedImageUrl}`;
         }
 
-        if (simulatedImageUrl) {
+        // Adiciona uma verificação para garantir que a URL da imagem não está vazia ou incompleta
+        if (simulatedImageUrl && simulatedImageUrl.length > 100) { // Um valor baixo, apenas para garantir que não está vazio
           navigate("/result", {
             state: {
               originalImage: imagePreview,
@@ -90,8 +91,9 @@ const Processing = () => {
             },
           });
         } else {
+          console.error("Resposta do n8n continha uma imagem inválida ou vazia:", simulatedImageUrl);
           throw new Error(
-            "URL da imagem simulada não encontrada na resposta do n8n. Verifique o console para ver a resposta completa.",
+            "A resposta do servidor não continha uma imagem válida. Verifique o workflow do n8n.",
           );
         }
       } catch (error) {
