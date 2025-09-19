@@ -5,10 +5,26 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 
 const procedures = [
-  { id: "whitening", name: "Clareamento Dental" },
-  { id: "restoration", name: "Restauração estética" },
-  { id: "alignment", name: "Alinhamento Dental" },
-  { id: "implants", name: "Implantes Dentários" },
+  {
+    id: "whitening",
+    name: "Clareamento Dental",
+    webhookValue: "clareamentoDental",
+  },
+  {
+    id: "restoration",
+    name: "Restauração estética",
+    webhookValue: "restauracaoEstetica",
+  },
+  {
+    id: "alignment",
+    name: "Alinhamento Dental",
+    webhookValue: "alinhamentoDental",
+  },
+  {
+    id: "implants",
+    name: "Implantes Dentários",
+    webhookValue: "implantesDentarios",
+  },
 ];
 
 const SelectProcedure = () => {
@@ -22,15 +38,13 @@ const SelectProcedure = () => {
 
   const handleGenerate = () => {
     if (selectedProcedure && imageFile && imagePreview) {
-      const procedureName = procedures.find(
-        (p) => p.id === selectedProcedure,
-      )?.name;
-      if (procedureName) {
+      const procedure = procedures.find((p) => p.id === selectedProcedure);
+      if (procedure) {
         navigate("/processing", {
           state: {
             imageFile,
             imagePreview,
-            procedureName: procedureName,
+            procedureName: procedure.webhookValue,
           },
         });
       }
