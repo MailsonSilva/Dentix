@@ -20,6 +20,22 @@ export const CameraCapture: React.FC<CameraCaptureProps> = ({ open, onOpenChange
   useEffect(() => {
     let currentStream: MediaStream | null = null;
 
+    const applyZoomConstraint = async (stream: MediaStream) => {
+      const videoTrack = stream.getVideoTracks()[0];
+      if (videoTrack) {
+        const capabilities = videoTrack.getCapabilities();
+        // Check if zoom is a supported capability
+        if (capabilities.zoom) {
+          try {
+            // Apply a non-mandatory constraint to set zoom to 1x
+            await videoTrack.applyConstraints({ advanced: [{ zoom: 1 }] });
+          } catch (e) {
+            console.warn('Could not set zoom to 1x.', e);
+          }
+        }
+      }
+    };
+
     const startCamera = async () => {
       if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
         try {
@@ -30,6 +46,7 @@ export const CameraCapture: React.FC<CameraCaptureProps> = ({ open, onOpenChange
           if (videoRef.current) {
             videoRef.current.srcObject = mediaStream;
           }
+          await applyZoomConstraint(mediaStream);
         } catch (err) {
           console.warn("Could not access rear camera, trying front camera.", err);
           // Fallback to the front camera ('user') if the rear one fails
@@ -40,6 +57,7 @@ export const CameraCapture: React.FC<CameraCaptureProps> = ({ open, onOpenChange
             if (videoRef.current) {
               videoRef.current.srcObject = mediaStream;
             }
+            await applyZoomConstraint(mediaStream);
           } catch (fallbackErr) {
             console.error("Error accessing any camera: ", fallbackErr);
             showError("Não foi possível acessar a câmera. Verifique as permissões.");
