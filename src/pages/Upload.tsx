@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { UploadCloud, Image as ImageIcon } from "lucide-react";
+import { UploadCloud, Image as ImageIcon, Camera } from "lucide-react";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
@@ -19,6 +19,8 @@ const Upload = () => {
       };
       reader.readAsDataURL(file);
     }
+    // Limpa o valor do input para permitir selecionar o mesmo arquivo novamente
+    event.target.value = "";
   };
 
   const handleNext = () => {
@@ -44,7 +46,7 @@ const Upload = () => {
               <img
                 src={imagePreview}
                 alt="Pré-visualização"
-                className="rounded-lg max-h-64 w-auto"
+                className="rounded-lg max-h-64 w-auto object-contain"
               />
             ) : (
               <div className="w-full h-64 border-2 border-dashed rounded-lg flex flex-col items-center justify-center text-muted-foreground">
@@ -52,19 +54,35 @@ const Upload = () => {
                 <span>Pré-visualização da foto</span>
               </div>
             )}
-            <div className="flex gap-4 w-full">
+            <div className="flex flex-col sm:flex-row gap-4 w-full">
               <Button
                 variant="outline"
                 className="w-full"
-                onClick={() => document.getElementById("fileInput")?.click()}
+                onClick={() => document.getElementById("galleryInput")?.click()}
               >
                 <UploadCloud className="mr-2 h-4 w-4" />
                 Escolher da galeria
               </Button>
               <input
                 type="file"
-                id="fileInput"
+                id="galleryInput"
                 accept="image/*"
+                className="hidden"
+                onChange={handleFileSelect}
+              />
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={() => document.getElementById("cameraInput")?.click()}
+              >
+                <Camera className="mr-2 h-4 w-4" />
+                Tirar Foto
+              </Button>
+              <input
+                type="file"
+                id="cameraInput"
+                accept="image/*"
+                capture="user"
                 className="hidden"
                 onChange={handleFileSelect}
               />
