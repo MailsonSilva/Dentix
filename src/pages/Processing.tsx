@@ -68,6 +68,7 @@ const Processing = () => {
           // Caso 2: A resposta é um objeto JSON
           // Tentamos encontrar a imagem em chaves comuns
           simulatedImageUrl =
+            responseData.simulatedImageB64 || // Adicionada a nova chave
             responseData.simulatedImageUrl ||
             responseData.imageData ||
             responseData.base64;
