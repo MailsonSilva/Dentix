@@ -7,7 +7,7 @@ import { showError } from "@/utils/toast";
 const Processing = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { imageFile, imagePreview, procedureId } = location.state || {};
+  const { imageFile, imagePreview, procedureName } = location.state || {};
 
   // Função para converter um arquivo para base64
   const toBase64 = (file: File): Promise<string> =>
@@ -19,7 +19,7 @@ const Processing = () => {
     });
 
   useEffect(() => {
-    if (!imageFile || !procedureId) {
+    if (!imageFile || !procedureName) {
       showError("Dados da simulação ausentes. Tente novamente.");
       navigate("/upload");
       return;
@@ -38,7 +38,7 @@ const Processing = () => {
         }
 
         const urlWithParams = new URL(webhookUrl);
-        urlWithParams.searchParams.append("procedureId", procedureId);
+        urlWithParams.searchParams.append("procedure", procedureName);
 
         // Envia um JSON com a imagem em base64
         const response = await axios.post(
@@ -131,7 +131,7 @@ const Processing = () => {
     };
 
     processImage();
-  }, [imageFile, procedureId, imagePreview, navigate]);
+  }, [imageFile, procedureName, imagePreview, navigate]);
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-background p-4">

@@ -22,13 +22,18 @@ const SelectProcedure = () => {
 
   const handleGenerate = () => {
     if (selectedProcedure && imageFile && imagePreview) {
-      navigate("/processing", {
-        state: {
-          imageFile,
-          imagePreview,
-          procedureId: selectedProcedure,
-        },
-      });
+      const procedureName = procedures.find(
+        (p) => p.id === selectedProcedure,
+      )?.name;
+      if (procedureName) {
+        navigate("/processing", {
+          state: {
+            imageFile,
+            imagePreview,
+            procedureName: procedureName,
+          },
+        });
+      }
     }
   };
 
