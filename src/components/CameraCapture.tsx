@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect, useCallback } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Camera, Check } from 'lucide-react';
@@ -15,45 +15,61 @@ export const CameraCapture: React.FC<CameraCaptureProps> = ({ open, onOpenChange
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [stream, setStream] = useState<MediaStream | null>(null);
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
+  const [retakeCounter, setRetakeCounter] = useState(0);
 
-  const startCamera = useCallback(async () => {
-    if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-      try {
-        const mediaStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
-        setStream(mediaStream);
-        if (videoRef.current) {
-          videoRef.current.srcObject = mediaStream;
+  useEffect(() => {
+    let currentStream: MediaStream | null = null;
+
+    const startCamera = async () => {
+      if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+        try {
+          // Prioritize the rear camera ('environment')
+          const mediaStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+          currentStream = mediaStream;
+          setStream(mediaStream);
+          if (videoRef.current) {
+            videoRef.current.srcObject = mediaStream;
+          }
+        } catch (err) {
+          console.warn("Could not access rear camera, trying front camera.", err);
+          // Fallback to the front camera ('user') if the rear one fails
+          try {
+            const mediaStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
+            currentStream = mediaStream;
+            setStream(mediaStream);
+            if (videoRef.current) {
+              videoRef.current.srcObject = mediaStream;
+            }
+          } catch (fallbackErr) {
+            console.error("Error accessing any camera: ", fallbackErr);
+            showError("Não foi possível acessar a câmera. Verifique as permissões.");
+            onOpenChange(false);
+          }
         }
-      } catch (err) {
-        console.error("Error accessing camera: ", err);
-        showError("Não foi possível acessar a câmera. Verifique as permissões.");
+      } else {
+        showError("Seu navegador não suporta acesso à câmera.");
         onOpenChange(false);
       }
-    } else {
-      showError("Seu navegador não suporta acesso à câmera.");
-      onOpenChange(false);
-    }
-  }, [onOpenChange]);
+    };
 
-  const stopCamera = useCallback(() => {
+    if (open && !capturedImage) {
+      startCamera();
+    }
+
+    return () => {
+      if (currentStream) {
+        currentStream.getTracks().forEach(track => track.stop());
+      }
+      setStream(null);
+    };
+  }, [open, onOpenChange, capturedImage, retakeCounter]);
+
+  const stopStream = () => {
     if (stream) {
       stream.getTracks().forEach(track => track.stop());
       setStream(null);
     }
-  }, [stream]);
-
-  useEffect(() => {
-    if (open) {
-      startCamera();
-    } else {
-      stopCamera();
-      setCapturedImage(null);
-    }
-
-    return () => {
-      stopCamera();
-    };
-  }, [open, startCamera, stopCamera]);
+  };
 
   const handleCapture = () => {
     if (videoRef.current && canvasRef.current) {
@@ -66,7 +82,7 @@ export const CameraCapture: React.FC<CameraCaptureProps> = ({ open, onOpenChange
         context.drawImage(video, 0, 0, canvas.width, canvas.height);
         const dataUrl = canvas.toDataURL('image/jpeg');
         setCapturedImage(dataUrl);
-        stopCamera();
+        stopStream();
       }
     }
   };
@@ -78,6 +94,7 @@ export const CameraCapture: React.FC<CameraCaptureProps> = ({ open, onOpenChange
           const file = new File([blob], `capture-${Date.now()}.jpg`, { type: 'image/jpeg' });
           onCapture(file);
           onOpenChange(false);
+          setCapturedImage(null); // Reset for next time
         }
       }, 'image/jpeg');
     }
@@ -85,11 +102,18 @@ export const CameraCapture: React.FC<CameraCaptureProps> = ({ open, onOpenChange
 
   const handleRetake = () => {
     setCapturedImage(null);
-    startCamera();
+    setRetakeCounter(c => c + 1); // Trigger effect to restart camera
   };
+  
+  const handleDialogChange = (isOpen: boolean) => {
+    if (!isOpen) {
+      setCapturedImage(null); // Reset state when closing dialog
+    }
+    onOpenChange(isOpen);
+  }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleDialogChange}>
       <DialogContent className="sm:max-w-[625px]">
         <DialogHeader>
           <DialogTitle>Tirar Foto</DialogTitle>
