@@ -58,7 +58,29 @@ const Processing = () => {
         console.log(response.data);
         console.log("------------------------------------");
 
-        const simulatedImageUrl = response.data.simulatedImageUrl;
+        let simulatedImageUrl;
+        const responseData = response.data;
+
+        if (typeof responseData === "string") {
+          // Caso 1: A resposta é a própria string base64/dataURL
+          simulatedImageUrl = responseData;
+        } else if (typeof responseData === "object" && responseData !== null) {
+          // Caso 2: A resposta é um objeto JSON
+          // Tentamos encontrar a imagem em chaves comuns
+          simulatedImageUrl =
+            responseData.simulatedImageUrl ||
+            responseData.imageData ||
+            responseData.base64;
+        }
+
+        // Se encontramos algo, vamos garantir que é uma Data URL completa
+        if (
+          simulatedImageUrl &&
+          typeof simulatedImageUrl === "string" &&
+          !simulatedImageUrl.startsWith("data:image")
+        ) {
+          simulatedImageUrl = `data:image/jpeg;base64,${simulatedImageUrl}`;
+        }
 
         if (simulatedImageUrl) {
           navigate("/result", {
@@ -69,7 +91,7 @@ const Processing = () => {
           });
         } else {
           throw new Error(
-            "URL da imagem simulada não encontrada na resposta do n8n.",
+            "URL da imagem simulada não encontrada na resposta do n8n. Verifique o console para ver a resposta completa.",
           );
         }
       } catch (error) {
