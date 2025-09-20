@@ -1,8 +1,9 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Camera, Check } from 'lucide-react';
+import { Camera, Check, SwitchCamera, Zap, ZapOff } from 'lucide-react';
 import { showError } from '@/utils/toast';
+import { FramingGuide } from './FramingGuide';
 
 interface CameraCaptureProps {
   open: boolean;
@@ -16,53 +17,40 @@ export const CameraCapture: React.FC<CameraCaptureProps> = ({ open, onOpenChange
   const [stream, setStream] = useState<MediaStream | null>(null);
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
   const [retakeCounter, setRetakeCounter] = useState(0);
+  const [facingMode, setFacingMode] = useState<'environment' | 'user'>('environment');
+  const [isFlashOn, setIsFlashOn] = useState(false);
+  const [hasFlash, setHasFlash] = useState(false);
 
   useEffect(() => {
     let currentStream: MediaStream | null = null;
 
-    const applyZoomConstraint = async (stream: MediaStream) => {
-      const videoTrack = stream.getVideoTracks()[0];
-      if (videoTrack) {
-        const capabilities = videoTrack.getCapabilities();
-        // Check if zoom is a supported capability
-        if (capabilities.zoom) {
-          try {
-            // Apply a non-mandatory constraint to set zoom to 1x
-            await videoTrack.applyConstraints({ advanced: [{ zoom: 1 }] });
-          } catch (e) {
-            console.warn('Could not set zoom to 1x.', e);
-          }
-        }
-      }
-    };
-
     const startCamera = async () => {
       if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
         try {
-          // Prioritize the rear camera ('environment')
-          const mediaStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+          const constraints = {
+            video: {
+              facingMode,
+              width: { ideal: 1920 },
+              height: { ideal: 1080 },
+            },
+          };
+          const mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
           currentStream = mediaStream;
           setStream(mediaStream);
+
           if (videoRef.current) {
             videoRef.current.srcObject = mediaStream;
           }
-          await applyZoomConstraint(mediaStream);
+
+          // Check for flash capability
+          const videoTrack = mediaStream.getVideoTracks()[0];
+          const capabilities = videoTrack.getCapabilities();
+          setHasFlash(!!capabilities.torch);
+
         } catch (err) {
-          console.warn("Could not access rear camera, trying front camera.", err);
-          // Fallback to the front camera ('user') if the rear one fails
-          try {
-            const mediaStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
-            currentStream = mediaStream;
-            setStream(mediaStream);
-            if (videoRef.current) {
-              videoRef.current.srcObject = mediaStream;
-            }
-            await applyZoomConstraint(mediaStream);
-          } catch (fallbackErr) {
-            console.error("Error accessing any camera: ", fallbackErr);
-            showError("Não foi possível acessar a câmera. Verifique as permissões.");
-            onOpenChange(false);
-          }
+          console.error("Error accessing camera: ", err);
+          showError("Não foi possível acessar a câmera. Verifique as permissões.");
+          onOpenChange(false);
         }
       } else {
         showError("Seu navegador não suporta acesso à câmera.");
@@ -79,8 +67,10 @@ export const CameraCapture: React.FC<CameraCaptureProps> = ({ open, onOpenChange
         currentStream.getTracks().forEach(track => track.stop());
       }
       setStream(null);
+      setHasFlash(false);
+      setIsFlashOn(false);
     };
-  }, [open, onOpenChange, capturedImage, retakeCounter]);
+  }, [open, onOpenChange, capturedImage, retakeCounter, facingMode]);
 
   const stopStream = () => {
     if (stream) {
@@ -112,7 +102,7 @@ export const CameraCapture: React.FC<CameraCaptureProps> = ({ open, onOpenChange
           const file = new File([blob], `capture-${Date.now()}.jpg`, { type: 'image/jpeg' });
           onCapture(file);
           onOpenChange(false);
-          setCapturedImage(null); // Reset for next time
+          setCapturedImage(null);
         }
       }, 'image/jpeg');
     }
@@ -120,15 +110,32 @@ export const CameraCapture: React.FC<CameraCaptureProps> = ({ open, onOpenChange
 
   const handleRetake = () => {
     setCapturedImage(null);
-    setRetakeCounter(c => c + 1); // Trigger effect to restart camera
+    setRetakeCounter(c => c + 1);
   };
-  
+
+  const handleSwitchCamera = () => {
+    setFacingMode(prev => (prev === 'environment' ? 'user' : 'environment'));
+  };
+
+  const handleToggleFlash = async () => {
+    if (stream && hasFlash) {
+      const videoTrack = stream.getVideoTracks()[0];
+      try {
+        await videoTrack.applyConstraints({ advanced: [{ torch: !isFlashOn }] });
+        setIsFlashOn(!isFlashOn);
+      } catch (err) {
+        console.error("Failed to toggle flash", err);
+        showError("Não foi possível controlar o flash.");
+      }
+    }
+  };
+
   const handleDialogChange = (isOpen: boolean) => {
     if (!isOpen) {
-      setCapturedImage(null); // Reset state when closing dialog
+      setCapturedImage(null);
     }
     onOpenChange(isOpen);
-  }
+  };
 
   return (
     <Dialog open={open} onOpenChange={handleDialogChange}>
@@ -140,7 +147,20 @@ export const CameraCapture: React.FC<CameraCaptureProps> = ({ open, onOpenChange
           {capturedImage ? (
             <img src={capturedImage} alt="Captured" className="h-full w-full object-contain" />
           ) : (
-            <video ref={videoRef} autoPlay playsInline className="h-full w-full object-cover" />
+            <>
+              <video ref={videoRef} autoPlay playsInline className="h-full w-full object-cover" />
+              <FramingGuide />
+              <div className="absolute top-2 right-2 flex flex-col gap-2">
+                <Button variant="outline" size="icon" onClick={handleSwitchCamera}>
+                  <SwitchCamera className="h-5 w-5" />
+                </Button>
+                {hasFlash && (
+                  <Button variant="outline" size="icon" onClick={handleToggleFlash}>
+                    {isFlashOn ? <ZapOff className="h-5 w-5" /> : <Zap className="h-5 w-5" />}
+                  </Button>
+                )}
+              </div>
+            </>
           )}
           <canvas ref={canvasRef} className="hidden" />
         </div>
