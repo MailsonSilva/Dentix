@@ -1,5 +1,5 @@
 import React, { useRef, useState, useEffect } from 'react';
-import { Button } from '@/components/ui/button';
+import  { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Camera, Check } from 'lucide-react';
 import { showError } from '@/utils/toast';
@@ -10,6 +10,7 @@ interface CameraCaptureProps {
   onCapture: (file: File) => void;
 }
 
+// o
 export const CameraCapture: React.FC<CameraCaptureProps> = ({ open, onOpenChange, onCapture }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
