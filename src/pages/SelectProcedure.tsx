@@ -22,7 +22,7 @@ const procedures = [
   },
   {
     id: "implants",
-    name: "Implantes Dentários",
+    name: "Implante Dentário", // Alterado aqui
     webhookValue: "implantesDentarios",
   },
 ];
