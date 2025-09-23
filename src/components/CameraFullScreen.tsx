@@ -185,7 +185,7 @@ export const CameraFullScreen: React.FC<CameraFullScreenProps> = ({
         <canvas ref={canvasRef} className="hidden" />
       </div>
       {/* Botões de ação */}
-      <div className="absolute bottom-0 left-0 w-full flex justify-center items-center gap-4 pb-8 z-20">
+      <div className="absolute bottom-0 left-0 w-full flex justify-center items-center gap-4 pb-24 z-20">
         {capturedImage ? (
           <>
             <Button variant="outline" onClick={handleRetake}>
