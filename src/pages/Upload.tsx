@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { UploadCloud, Image as ImageIcon, Camera } from "lucide-react";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { CameraCapture } from "@/components/CameraCapture";
+import { CameraFullScreen } from "@/components/CameraFullScreen";
 
 const Upload = () => {
   const navigate = useNavigate();
@@ -107,9 +107,9 @@ const Upload = () => {
           </CardContent>
         </Card>
       </div>
-      <CameraCapture
+      <CameraFullScreen
         open={isCameraOpen}
-        onOpenChange={setIsCameraOpen}
+        onClose={() => setIsCameraOpen(false)}
         onCapture={handleCapture}
       />
     </>
