@@ -1,7 +1,7 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Camera, Check, SwitchCamera, Zap, ZapOff } from 'lucide-react';
+import { Camera, Check, Zap, ZapOff } from 'lucide-react';
 import { showError } from '@/utils/toast';
 import { FramingGuide } from './FramingGuide';
 
@@ -17,7 +17,7 @@ export const CameraCapture: React.FC<CameraCaptureProps> = ({ open, onOpenChange
   const [stream, setStream] = useState<MediaStream | null>(null);
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
   const [retakeCounter, setRetakeCounter] = useState(0);
-  const [facingMode, setFacingMode] = useState<'environment' | 'user'>('environment');
+  // Removido o estado de facingMode
   const [isFlashOn, setIsFlashOn] = useState(false);
   const [hasFlash, setHasFlash] = useState(false);
 
@@ -29,7 +29,7 @@ export const CameraCapture: React.FC<CameraCaptureProps> = ({ open, onOpenChange
         try {
           const constraints = {
             video: {
-              facingMode,
+              facingMode: { exact: "environment" }, // Força a câmera traseira
               width: { ideal: 1920 },
               height: { ideal: 1080 },
             },
@@ -70,7 +70,7 @@ export const CameraCapture: React.FC<CameraCaptureProps> = ({ open, onOpenChange
       setHasFlash(false);
       setIsFlashOn(false);
     };
-  }, [open, onOpenChange, capturedImage, retakeCounter, facingMode]);
+  }, [open, onOpenChange, capturedImage, retakeCounter]);
 
   const stopStream = () => {
     if (stream) {
@@ -113,9 +113,7 @@ export const CameraCapture: React.FC<CameraCaptureProps> = ({ open, onOpenChange
     setRetakeCounter(c => c + 1);
   };
 
-  const handleSwitchCamera = () => {
-    setFacingMode(prev => (prev === 'environment' ? 'user' : 'environment'));
-  };
+  // Removido handleSwitchCamera e estado de facingMode
 
   const handleToggleFlash = async () => {
     if (stream && hasFlash) {
@@ -151,9 +149,7 @@ export const CameraCapture: React.FC<CameraCaptureProps> = ({ open, onOpenChange
               <video ref={videoRef} autoPlay playsInline className="h-full w-full object-cover" />
               <FramingGuide />
               <div className="absolute top-2 right-2 flex flex-col gap-2">
-                <Button variant="outline" size="icon" onClick={handleSwitchCamera}>
-                  <SwitchCamera className="h-5 w-5" />
-                </Button>
+                {/* Removido o botão de alternar câmera */}
                 {hasFlash && (
                   <Button variant="outline" size="icon" onClick={handleToggleFlash}>
                     {isFlashOn ? <ZapOff className="h-5 w-5" /> : <Zap className="h-5 w-5" />}
