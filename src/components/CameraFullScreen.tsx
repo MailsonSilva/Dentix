@@ -139,66 +139,69 @@ export const CameraFullScreen: React.FC<CameraFullScreenProps> = ({
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 bg-black flex flex-col items-center justify-center">
-      <div className="absolute top-4 left-4">
+    <div className="fixed inset-0 z-50 bg-black w-screen h-screen flex flex-col">
+      {/* Botão fechar */}
+      <div className="absolute top-4 left-4 z-20">
         <Button variant="ghost" size="icon" onClick={handleClose}>
           <X className="h-6 w-6 text-white" />
         </Button>
       </div>
-      <div className="w-full max-w-2xl flex flex-col items-center">
-        <div className="relative w-full aspect-video bg-muted rounded-lg overflow-hidden">
-          {capturedImage ? (
-            <img
-              src={capturedImage}
-              alt="Captured"
-              className="h-full w-full object-contain"
+      {/* Flash */}
+      {hasFlash && !capturedImage && (
+        <div className="absolute top-4 right-4 z-20">
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={handleToggleFlash}
+            className="bg-black/50 border-white"
+          >
+            {isFlashOn ? (
+              <ZapOff className="h-5 w-5 text-white" />
+            ) : (
+              <Zap className="h-5 w-5 text-white" />
+            )}
+          </Button>
+        </div>
+      )}
+      {/* Visualização da câmera ou imagem capturada */}
+      <div className="relative flex-1 w-full h-full flex items-center justify-center">
+        {capturedImage ? (
+          <img
+            src={capturedImage}
+            alt="Captured"
+            className="w-full h-full object-contain bg-black"
+          />
+        ) : (
+          <>
+            <video
+              ref={videoRef}
+              autoPlay
+              playsInline
+              className="w-full h-full object-cover bg-black"
             />
-          ) : (
-            <>
-              <video
-                ref={videoRef}
-                autoPlay
-                playsInline
-                className="h-full w-full object-cover"
-              />
-              <FramingGuide />
-              <div className="absolute top-2 right-2 flex flex-col gap-2">
-                {hasFlash && (
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    onClick={handleToggleFlash}
-                  >
-                    {isFlashOn ? (
-                      <ZapOff className="h-5 w-5" />
-                    ) : (
-                      <Zap className="h-5 w-5" />
-                    )}
-                  </Button>
-                )}
-              </div>
-            </>
-          )}
-          <canvas ref={canvasRef} className="hidden" />
-        </div>
-        <div className="flex gap-4 mt-6 justify-center">
-          {capturedImage ? (
-            <>
-              <Button variant="outline" onClick={handleRetake}>
-                Tirar Outra
-              </Button>
-              <Button onClick={handleConfirm}>
-                <Check className="mr-2 h-4 w-4" />
-                Usar esta foto
-              </Button>
-            </>
-          ) : (
-            <Button onClick={handleCapture} disabled={!stream}>
-              <Camera className="mr-2 h-4 w-4" />
-              Capturar
+            <FramingGuide />
+          </>
+        )}
+        <canvas ref={canvasRef} className="hidden" />
+      </div>
+      {/* Botões de ação */}
+      <div className="absolute bottom-0 left-0 w-full flex justify-center items-center gap-4 pb-8 z-20">
+        {capturedImage ? (
+          <>
+            <Button variant="outline" onClick={handleRetake}>
+              Tirar Outra
             </Button>
-          )}
-        </div>
+            <Button onClick={handleConfirm}>
+              <Check className="mr-2 h-4 w-4" />
+              Usar esta foto
+            </Button>
+          </>
+        ) : (
+          <Button onClick={handleCapture} disabled={!stream}>
+            <Camera className="mr-2 h-4 w-4" />
+            Capturar
+          </Button>
+        )}
       </div>
     </div>
   );
