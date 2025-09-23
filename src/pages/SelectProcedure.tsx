@@ -5,24 +5,24 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 
 const procedures = [
-  {
-    id: "whitening",
-    name: "Clareamento Dental",
-    webhookValue: "clareamentoDental",
-  },
-  {
-    id: "restoration",
-    name: "Restauração estética",
-    webhookValue: "restauracaoEstetica",
-  },
-  {
-    id: "alignment",
-    name: "Alinhamento Dental",
-    webhookValue: "alinhamentoDental",
-  },
+  // {
+  //   id: "whitening",
+  //   name: "Clareamento Dental",
+  //   webhookValue: "clareamentoDental",
+  // },
+  // {
+  //   id: "restoration",
+  //   name: "Restauração estética",
+  //   webhookValue: "restauracaoEstetica",
+  // },
+  // {
+  //   id: "alignment",
+  //   name: "Alinhamento Dental",
+  //   webhookValue: "alinhamentoDental",
+  // },
   {
     id: "implants",
-    name: "Implante Dentário", // Alterado aqui
+    name: "Implante Dentário", 
     webhookValue: "implantesDentarios",
   },
 ];
