@@ -10,6 +10,22 @@ interface CameraFullScreenProps {
   onCapture: (file: File) => void;
 }
 
+function isWideCamera(label: string) {
+  // Heurística: não contém "ultrawide", "ultra-wide", "tele", "macro", "depth"
+  const l = label.toLowerCase();
+  return (
+    l.includes("back") ||
+    l.includes("traseira") ||
+    l.includes("rear") ||
+    l.includes("environment")
+  ) &&
+    !l.includes("ultrawide") &&
+    !l.includes("ultra-wide") &&
+    !l.includes("tele") &&
+    !l.includes("macro") &&
+    !l.includes("depth");
+}
+
 export const CameraFullScreen: React.FC<CameraFullScreenProps> = ({
   open,
   onClose,
@@ -26,34 +42,66 @@ export const CameraFullScreen: React.FC<CameraFullScreenProps> = ({
     let currentStream: MediaStream | null = null;
 
     const startCamera = async () => {
-      if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-        try {
-          const constraints = {
-            video: {
-              facingMode: { exact: "environment" },
-              width: { ideal: 1920 },
-              height: { ideal: 1080 },
-            },
-          };
-          const mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
-          currentStream = mediaStream;
-          setStream(mediaStream);
+      try {
+        // 1. Pede permissão para acessar qualquer câmera
+        await navigator.mediaDevices.getUserMedia({ video: true });
 
-          if (videoRef.current) {
-            videoRef.current.srcObject = mediaStream;
-          }
+        // 2. Lista todos os dispositivos de vídeo
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const videoDevices = devices.filter((d) => d.kind === "videoinput");
 
-          // Check for flash capability
-          const videoTrack = mediaStream.getVideoTracks()[0];
-          const capabilities = videoTrack.getCapabilities();
-          setHasFlash(!!capabilities.torch);
-        } catch (err) {
-          console.error("Error accessing camera: ", err);
-          showError("Não foi possível acessar a câmera. Verifique as permissões.");
-          onClose();
+        // 3. Tenta encontrar a lente traseira wide principal
+        let selectedDevice = videoDevices.find((d) =>
+          isWideCamera(d.label)
+        );
+
+        // Se não encontrar, tenta pegar a primeira traseira
+        if (!selectedDevice) {
+          selectedDevice = videoDevices.find((d) =>
+            d.label.toLowerCase().includes("back") ||
+            d.label.toLowerCase().includes("traseira") ||
+            d.label.toLowerCase().includes("rear") ||
+            d.label.toLowerCase().includes("environment")
+          );
         }
-      } else {
-        showError("Seu navegador não suporta acesso à câmera.");
+
+        // Se ainda não encontrar, usa a primeira disponível
+        if (!selectedDevice) {
+          selectedDevice = videoDevices[0];
+        }
+
+        if (!selectedDevice) {
+          showError("Não foi possível encontrar uma câmera traseira.");
+          onClose();
+          return;
+        }
+
+        // 4. Abre a câmera selecionada pelo deviceId
+        const constraints: MediaStreamConstraints = {
+          video: {
+            deviceId: { exact: selectedDevice.deviceId },
+            facingMode: { exact: "environment" },
+          },
+        };
+        const mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
+        currentStream = mediaStream;
+        setStream(mediaStream);
+
+        if (videoRef.current) {
+          videoRef.current.srcObject = mediaStream;
+        }
+
+        // 5. Força zoom 1.0x se suportado
+        const videoTrack = mediaStream.getVideoTracks()[0];
+        const capabilities = videoTrack.getCapabilities();
+        setHasFlash(!!capabilities.torch);
+
+        if ("zoom" in capabilities) {
+          await videoTrack.applyConstraints({ advanced: [{ zoom: 1.0 }] });
+        }
+      } catch (err) {
+        console.error("Error accessing camera: ", err);
+        showError("Não foi possível acessar a câmera. Verifique as permissões.");
         onClose();
       }
     };
