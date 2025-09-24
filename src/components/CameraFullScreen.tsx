@@ -22,7 +22,6 @@ export const CameraFullScreen: React.FC<CameraFullScreenProps> = ({
   const [isFlashOn, setIsFlashOn] = useState(false);
   const [hasFlash, setHasFlash] = useState(false);
 
-  // Inicia a câmera quando abrir e não tiver imagem capturada
   useEffect(() => {
     let currentStream: MediaStream | null = null;
 
@@ -31,7 +30,7 @@ export const CameraFullScreen: React.FC<CameraFullScreenProps> = ({
         try {
           const constraints = {
             video: {
-              facingMode: { ideal: "environment" },
+              facingMode: { exact: "environment" },
               width: { ideal: 1920 },
               height: { ideal: 1080 },
             },
@@ -39,11 +38,10 @@ export const CameraFullScreen: React.FC<CameraFullScreenProps> = ({
           const mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
           currentStream = mediaStream;
           setStream(mediaStream);
-          setTimeout(() => {
-            if (videoRef.current) {
-              videoRef.current.srcObject = mediaStream;
-            }
-          }, 0);
+
+          if (videoRef.current) {
+            videoRef.current.srcObject = mediaStream;
+          }
 
           // Check for flash capability
           const videoTrack = mediaStream.getVideoTracks()[0];
@@ -73,14 +71,7 @@ export const CameraFullScreen: React.FC<CameraFullScreenProps> = ({
       setIsFlashOn(false);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, capturedImage, onClose]);
-
-  // Sempre atribui o stream ao vídeo quando stream muda
-  useEffect(() => {
-    if (videoRef.current && stream) {
-      videoRef.current.srcObject = stream;
-    }
-  }, [stream]);
+  }, [open, capturedImage]);
 
   const stopStream = () => {
     if (stream) {
@@ -187,7 +178,6 @@ export const CameraFullScreen: React.FC<CameraFullScreenProps> = ({
               autoPlay
               playsInline
               className="w-full h-full object-cover bg-black"
-              muted
             />
             <FramingGuide />
           </>
