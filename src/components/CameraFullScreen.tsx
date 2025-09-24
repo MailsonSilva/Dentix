@@ -11,19 +11,19 @@ interface CameraFullScreenProps {
 }
 
 function isWideCamera(label: string) {
-  // Heurística para identificar a lente wide
+  // Heurística: não contém "ultrawide", "ultra-wide", "tele", "macro", "depth"
   const l = label.toLowerCase();
   return (
-    (l.includes("back") ||
-      l.includes("traseira") ||
-      l.includes("rear") ||
-      l.includes("environment")) &&
+    l.includes("back") ||
+    l.includes("traseira") ||
+    l.includes("rear") ||
+    l.includes("environment")
+  ) &&
     !l.includes("ultrawide") &&
     !l.includes("ultra-wide") &&
     !l.includes("tele") &&
     !l.includes("macro") &&
-    !l.includes("depth")
-  );
+    !l.includes("depth");
 }
 
 export const CameraFullScreen: React.FC<CameraFullScreenProps> = ({
@@ -43,17 +43,19 @@ export const CameraFullScreen: React.FC<CameraFullScreenProps> = ({
 
     const startCamera = async () => {
       try {
-        // 1. Solicita permissão genérica primeiro
+        // 1. Pede permissão para acessar qualquer câmera
         await navigator.mediaDevices.getUserMedia({ video: true });
 
-        // 2. Agora consegue listar com labels reais
+        // 2. Lista todos os dispositivos de vídeo
         const devices = await navigator.mediaDevices.enumerateDevices();
         const videoDevices = devices.filter((d) => d.kind === "videoinput");
-        console.log("📸 Câmeras detectadas:", videoDevices);
 
-        // 3. Seleciona a wide se possível
-        let selectedDevice = videoDevices.find((d) => isWideCamera(d.label));
+        // 3. Tenta encontrar a lente traseira wide principal
+        let selectedDevice = videoDevices.find((d) =>
+          isWideCamera(d.label)
+        );
 
+        // Se não encontrar, tenta pegar a primeira traseira
         if (!selectedDevice) {
           selectedDevice = videoDevices.find((d) =>
             d.label.toLowerCase().includes("back") ||
@@ -63,7 +65,8 @@ export const CameraFullScreen: React.FC<CameraFullScreenProps> = ({
           );
         }
 
-        if (!selectedDevice && videoDevices.length > 0) {
+        // Se ainda não encontrar, usa a primeira disponível
+        if (!selectedDevice) {
           selectedDevice = videoDevices[0];
         }
 
@@ -73,17 +76,14 @@ export const CameraFullScreen: React.FC<CameraFullScreenProps> = ({
           return;
         }
 
-        console.log("🎯 Câmera escolhida:", selectedDevice.label);
-
-        // 4. Abre a câmera pelo deviceId escolhido
-        const mediaStream = await navigator.mediaDevices.getUserMedia({
+        // 4. Abre a câmera selecionada pelo deviceId
+        const constraints: MediaStreamConstraints = {
           video: {
             deviceId: { exact: selectedDevice.deviceId },
-            width: { ideal: 1920 },
-            height: { ideal: 1080 },
+            facingMode: { exact: "environment" },
           },
-        });
-
+        };
+        const mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
         currentStream = mediaStream;
         setStream(mediaStream);
 
@@ -91,7 +91,7 @@ export const CameraFullScreen: React.FC<CameraFullScreenProps> = ({
           videoRef.current.srcObject = mediaStream;
         }
 
-        // 5. Ajusta recursos extras (zoom, flash)
+        // 5. Força zoom 1.0x se suportado
         const videoTrack = mediaStream.getVideoTracks()[0];
         const capabilities = videoTrack.getCapabilities();
         setHasFlash(!!capabilities.torch);
