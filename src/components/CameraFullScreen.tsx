@@ -43,19 +43,17 @@ export const CameraFullScreen: React.FC<CameraFullScreenProps> = ({
 
     const startCamera = async () => {
       try {
-        // Pede permissão primeiro (necessário para habilitar labels)
+        // 1. Solicita permissão genérica primeiro
         await navigator.mediaDevices.getUserMedia({ video: true });
 
-        // Lista todos os dispositivos de vídeo
+        // 2. Agora consegue listar com labels reais
         const devices = await navigator.mediaDevices.enumerateDevices();
         const videoDevices = devices.filter((d) => d.kind === "videoinput");
-
         console.log("📸 Câmeras detectadas:", videoDevices);
 
-        // Tenta encontrar a lente traseira wide principal
+        // 3. Seleciona a wide se possível
         let selectedDevice = videoDevices.find((d) => isWideCamera(d.label));
 
-        // Se não encontrar, tenta pegar qualquer traseira
         if (!selectedDevice) {
           selectedDevice = videoDevices.find((d) =>
             d.label.toLowerCase().includes("back") ||
@@ -65,7 +63,6 @@ export const CameraFullScreen: React.FC<CameraFullScreenProps> = ({
           );
         }
 
-        // Se ainda não encontrar, usa a primeira disponível
         if (!selectedDevice && videoDevices.length > 0) {
           selectedDevice = videoDevices[0];
         }
@@ -78,17 +75,15 @@ export const CameraFullScreen: React.FC<CameraFullScreenProps> = ({
 
         console.log("🎯 Câmera escolhida:", selectedDevice.label);
 
-        // Abre a câmera selecionada
-        const constraints: MediaStreamConstraints = {
+        // 4. Abre a câmera pelo deviceId escolhido
+        const mediaStream = await navigator.mediaDevices.getUserMedia({
           video: {
             deviceId: { exact: selectedDevice.deviceId },
-            facingMode: "environment",
             width: { ideal: 1920 },
             height: { ideal: 1080 },
           },
-        };
+        });
 
-        const mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
         currentStream = mediaStream;
         setStream(mediaStream);
 
@@ -96,7 +91,7 @@ export const CameraFullScreen: React.FC<CameraFullScreenProps> = ({
           videoRef.current.srcObject = mediaStream;
         }
 
-        // Força zoom 1.0x se suportado
+        // 5. Ajusta recursos extras (zoom, flash)
         const videoTrack = mediaStream.getVideoTracks()[0];
         const capabilities = videoTrack.getCapabilities();
         setHasFlash(!!capabilities.torch);
