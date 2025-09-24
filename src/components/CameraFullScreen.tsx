@@ -28,11 +28,12 @@ export const CameraFullScreen: React.FC<CameraFullScreenProps> = ({
     const startCamera = async () => {
       if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
         try {
-          const constraints = {
+          // Solicita a câmera traseira, sem forçar resolução, e sem zoom inicial
+          const constraints: MediaStreamConstraints = {
             video: {
               facingMode: { exact: "environment" },
-              width: { ideal: 1920 },
-              height: { ideal: 1080 },
+              // Não define width/height para evitar ultrawide
+              // O zoom será ajustado abaixo
             },
           };
           const mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
@@ -43,10 +44,16 @@ export const CameraFullScreen: React.FC<CameraFullScreenProps> = ({
             videoRef.current.srcObject = mediaStream;
           }
 
-          // Check for flash capability
+          // Garante zoom 1.0x se suportado
           const videoTrack = mediaStream.getVideoTracks()[0];
           const capabilities = videoTrack.getCapabilities();
           setHasFlash(!!capabilities.torch);
+
+          if ("zoom" in capabilities) {
+            // Se o dispositivo suporta zoom, força para 1.0x
+            const settings: MediaTrackConstraintSet = { zoom: 1.0 };
+            await videoTrack.applyConstraints({ advanced: [settings] });
+          }
         } catch (err) {
           console.error("Error accessing camera: ", err);
           showError("Não foi possível acessar a câmera. Verifique as permissões.");
