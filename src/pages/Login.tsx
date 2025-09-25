@@ -59,6 +59,9 @@ const Login = () => {
                     link_text: 'Esqueceu sua senha?',
                 }
               },
+              // Traduzindo as mensagens de erro diretamente
+              'Invalid login credentials': 'E-mail ou senha inválidos.',
+              'Email not confirmed': 'E-mail ainda não confirmado. Verifique sua caixa de entrada.',
             }}
           />
            <div className="mt-4 text-center text-sm">
