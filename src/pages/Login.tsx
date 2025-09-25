@@ -32,48 +32,31 @@ const Login = () => {
             appearance={{ theme: ThemeSupa }}
             providers={[]}
             theme="light"
+            view="sign_in"
+            showLinks={false} // Vamos controlar os links manualmente
             passwordToggle={true}
             localization={{
               variables: {
-                sign_up: {
-                  email_label: 'Seu e-mail',
-                  password_label: 'Crie uma senha',
-                  button_label: 'Cadastrar',
-                  social_provider_text: 'Entrar com {{provider}}',
-                  link_text: 'Não tem uma conta? Cadastre-se',
-                  email_input_placeholder: 'seu@email.com',
-                  // Adicionando o campo de nome completo
-                  additional_data_label: 'Nome Completo',
-                },
                 sign_in: {
                   email_label: 'Seu e-mail',
                   password_label: 'Sua senha',
                   button_label: 'Entrar',
-                  social_provider_text: 'Entrar com {{provider}}',
-                  link_text: 'Já tem uma conta? Entre',
                   email_input_placeholder: 'seu@email.com',
                 },
                 forgotten_password: {
                     email_label: 'Seu e-mail',
-                    password_label: 'Sua senha',
                     button_label: 'Enviar instruções',
                     link_text: 'Esqueceu sua senha?',
                 }
               },
             }}
-            view="sign_in"
-            // Mostra o campo de nome completo apenas na tela de cadastro
-            showLinks={true}
-            additionalDataFields={[
-              {
-                type: 'text',
-                name: 'full_name',
-                label: 'Nome Completo',
-                placeholder: 'Seu nome completo',
-                required: true,
-              },
-            ]}
           />
+           <div className="mt-4 text-center text-sm">
+            Não tem uma conta?{" "}
+            <a href="/signup" className="underline">
+              Cadastre-se
+            </a>
+          </div>
         </CardContent>
       </Card>
     </div>
