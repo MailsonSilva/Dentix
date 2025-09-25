@@ -32,6 +32,19 @@ const formSchema = z
     path: ["confirmPassword"], // O erro será mostrado no campo de confirmação
   });
 
+// Função para traduzir erros comuns do Supabase
+const translateSupabaseError = (message: string): string => {
+  if (message.includes("User already registered")) {
+    return "Este e-mail já está cadastrado. Tente fazer login.";
+  }
+  if (message.includes("Unable to validate email address: invalid format")) {
+    return "O formato do e-mail é inválido.";
+  }
+  // Mensagem padrão para outros erros
+  return "Ocorreu um erro durante o cadastro. Tente novamente.";
+};
+
+
 const SignUp = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
@@ -60,7 +73,7 @@ const SignUp = () => {
     setLoading(false);
 
     if (error) {
-      showError(error.message);
+      showError(translateSupabaseError(error.message));
     } else {
       showSuccess("Cadastro realizado! Verifique seu e-mail para confirmar a conta.");
       navigate("/");
