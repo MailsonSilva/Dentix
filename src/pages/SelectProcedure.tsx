@@ -1,40 +1,45 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
+import { supabase } from "@/integrations/supabase/client";
+import { Skeleton } from "@/components/ui/skeleton";
+import { showError } from "@/utils/toast";
 
-const procedures = [
-  // {
-  //   id: "whitening",
-  //   name: "Clareamento Dental",
-  //   webhookValue: "clareamentoDental",
-  // },
-  // {
-  //   id: "restoration",
-  //   name: "Restauração estética",
-  //   webhookValue: "restauracaoEstetica",
-  // },
-  // {
-  //   id: "alignment",
-  //   name: "Alinhamento Dental",
-  //   webhookValue: "alinhamentoDental",
-  // },
-  {
-    id: "implants",
-    name: "Implante Dentário", 
-    webhookValue: "implantesDentarios",
-  },
-];
+interface Procedure {
+  id: string;
+  nome: string;
+  webhook_valor: string;
+}
 
 const SelectProcedure = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { imageFile, imagePreview } = location.state || {};
 
-  const [selectedProcedure, setSelectedProcedure] = useState<string | null>(
-    null,
-  );
+  const [procedures, setProcedures] = useState<Procedure[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedProcedure, setSelectedProcedure] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchProcedures = async () => {
+      const { data, error } = await supabase
+        .from("procedimentos")
+        .select("id, nome, webhook_valor")
+        .eq("ativo", true);
+
+      if (error) {
+        console.error("Error fetching procedures:", error);
+        showError("Não foi possível carregar os procedimentos.");
+      } else {
+        setProcedures(data as Procedure[]);
+      }
+      setLoading(false);
+    };
+
+    fetchProcedures();
+  }, []);
 
   const handleGenerate = () => {
     if (selectedProcedure && imageFile && imagePreview) {
@@ -44,7 +49,7 @@ const SelectProcedure = () => {
           state: {
             imageFile,
             imagePreview,
-            procedureName: procedure.webhookValue,
+            procedureName: procedure.webhook_valor,
           },
         });
       }
@@ -62,24 +67,33 @@ const SelectProcedure = () => {
         </CardHeader>
         <CardContent className="flex flex-col items-center gap-6">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full">
-            {procedures.map((proc) => (
-              <button
-                key={proc.id}
-                onClick={() => setSelectedProcedure(proc.id)}
-                className={cn(
-                  "p-4 border rounded-lg text-center transition-colors",
-                  selectedProcedure === proc.id
-                    ? "bg-primary text-primary-foreground border-primary"
-                    : "hover:bg-muted",
-                )}
-              >
-                {proc.name}
-              </button>
-            ))}
+            {loading ? (
+              <>
+                <Skeleton className="h-16 w-full" />
+                <Skeleton className="h-16 w-full" />
+                <Skeleton className="h-16 w-full" />
+                <Skeleton className="h-16 w-full" />
+              </>
+            ) : (
+              procedures.map((proc) => (
+                <button
+                  key={proc.id}
+                  onClick={() => setSelectedProcedure(proc.id)}
+                  className={cn(
+                    "p-4 border rounded-lg text-center transition-colors h-16 flex items-center justify-center",
+                    selectedProcedure === proc.id
+                      ? "bg-primary text-primary-foreground border-primary"
+                      : "hover:bg-muted",
+                  )}
+                >
+                  {proc.nome}
+                </button>
+              ))
+            )}
           </div>
           <Button
             className="w-full"
-            disabled={!selectedProcedure}
+            disabled={!selectedProcedure || loading}
             onClick={handleGenerate}
           >
             Gerar Simulação

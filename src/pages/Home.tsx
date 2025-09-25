@@ -7,14 +7,14 @@ import { useEffect, useState } from "react";
 const Home = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [profile, setProfile] = useState<{ full_name: string | null } | null>(null);
+  const [profile, setProfile] = useState<{ nome_completo: string | null } | null>(null);
 
   useEffect(() => {
     const fetchProfile = async () => {
       if (user) {
         const { data, error } = await supabase
-          .from('profiles')
-          .select('full_name')
+          .from('perfis')
+          .select('nome_completo')
           .eq('id', user.id)
           .single();
 
@@ -34,7 +34,7 @@ const Home = () => {
     navigate("/");
   };
 
-  const displayName = profile?.full_name || user?.email || "Usuário";
+  const displayName = profile?.nome_completo || user?.email || "Usuário";
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-background p-4">

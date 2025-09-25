@@ -41,6 +41,8 @@ const Login = () => {
                   social_provider_text: 'Entrar com {{provider}}',
                   link_text: 'Não tem uma conta? Cadastre-se',
                   email_input_placeholder: 'seu@email.com',
+                  // Adicionando o campo de nome completo
+                  additional_data_label: 'Nome Completo',
                 },
                 sign_in: {
                   email_label: 'Seu e-mail',
@@ -59,6 +61,17 @@ const Login = () => {
               },
             }}
             view="sign_in"
+            // Mostra o campo de nome completo apenas na tela de cadastro
+            showLinks={true}
+            additionalDataFields={[
+              {
+                type: 'text',
+                name: 'full_name',
+                label: 'Nome Completo',
+                placeholder: 'Seu nome completo',
+                required: true,
+              },
+            ]}
           />
         </CardContent>
       </Card>
