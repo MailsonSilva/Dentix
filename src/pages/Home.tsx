@@ -13,7 +13,7 @@ const Home = () => {
     const fetchProfile = async () => {
       if (user) {
         const { data, error } = await supabase
-          .from('perfis')
+          .from('usuarios')
           .select('nome_completo')
           .eq('id', user.id)
           .single();
