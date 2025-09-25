@@ -17,11 +17,11 @@ const Home: React.FC = () => {
       <div className="max-w-2xl mx-auto text-center w-full">
         <img src="/logo.png" alt="Dentix Logo" className="w-36 mx-auto mb-8" />
 
-        <h1 className="text-5xl sm:text-6xl font-extrabold mb-2 text-foreground">
+        <h1 className="text-4xl sm:text-5xl font-extrabold mb-2 text-[#404040]">
           Bem-vindo, Dr. {displayName}
         </h1>
 
-        <p className="text-lg text-muted-foreground mb-8">
+        <p className="text-lg text-[#404040] mb-8">
           Pronto para transformar sorrisos?
         </p>
 
