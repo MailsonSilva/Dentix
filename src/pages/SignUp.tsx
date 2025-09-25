@@ -68,6 +68,7 @@ const SignUp = () => {
         data: {
           full_name: values.fullName,
         },
+        emailRedirectTo: `${window.location.origin}/home`,
       },
     });
     setLoading(false);
@@ -75,7 +76,7 @@ const SignUp = () => {
     if (error) {
       showError(translateSupabaseError(error.message));
     } else {
-      showSuccess("Cadastro realizado! Verifique seu e-mail para confirmar a conta.");
+      showSuccess("Cadastro realizado com sucesso!");
       navigate("/");
     }
   }
