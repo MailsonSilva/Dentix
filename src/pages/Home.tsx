@@ -17,7 +17,7 @@ const Home: React.FC = () => {
       <div className="max-w-2xl mx-auto text-center w-full">
         <img src="/logo.png" alt="Dentix Logo" className="w-36 mx-auto mb-8" />
 
-        <h1 className="text-4xl sm:text-5xl font-extrabold mb-2 text-[#404040]">
+        <h1 className="text-3xl sm:text-4xl font-extrabold mb-2 text-[#404040]">
           Bem-vindo, Dr. {displayName}
         </h1>
 
