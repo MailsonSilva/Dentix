@@ -32,6 +32,7 @@ const Login = () => {
             appearance={{ theme: ThemeSupa }}
             providers={[]}
             theme="light"
+            passwordToggle={true}
             localization={{
               variables: {
                 sign_up: {
