@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
 import { showError } from "@/utils/toast";
+import { ArrowLeft } from "lucide-react";
 
 interface Procedure {
   id: string;
@@ -91,13 +92,23 @@ const SelectProcedure = () => {
               ))
             )}
           </div>
-          <Button
-            className="w-full"
-            disabled={!selectedProcedure || loading}
-            onClick={handleGenerate}
-          >
-            Gerar Simulação
-          </Button>
+          <div className="flex flex-col sm:flex-row gap-4 w-full">
+            <Button
+              variant="outline"
+              className="w-full"
+              onClick={() => navigate(-1)}
+            >
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Voltar
+            </Button>
+            <Button
+              className="w-full"
+              disabled={!selectedProcedure || loading}
+              onClick={handleGenerate}
+            >
+              Gerar Simulação
+            </Button>
+          </div>
         </CardContent>
       </Card>
     </div>

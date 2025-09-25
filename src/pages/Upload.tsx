@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { UploadCloud, Image as ImageIcon, Camera } from "lucide-react";
+import { UploadCloud, Image as ImageIcon, Camera, ArrowLeft } from "lucide-react";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { CameraFullScreen } from "@/components/CameraFullScreen";
@@ -96,13 +96,23 @@ const Upload = () => {
                   Tirar Foto
                 </Button>
               </div>
-              <Button
-                className="w-full"
-                disabled={!imagePreview}
-                onClick={handleNext}
-              >
-                Avançar
-              </Button>
+              <div className="flex flex-col sm:flex-row gap-4 w-full">
+                <Button
+                  variant="outline"
+                  className="w-full"
+                  onClick={() => navigate("/home")}
+                >
+                  <ArrowLeft className="mr-2 h-4 w-4" />
+                  Voltar
+                </Button>
+                <Button
+                  className="w-full"
+                  disabled={!imagePreview}
+                  onClick={handleNext}
+                >
+                  Avançar
+                </Button>
+              </div>
             </div>
           </CardContent>
         </Card>
