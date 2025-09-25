@@ -10,6 +10,8 @@ import Upload from "./pages/Upload";
 import SelectProcedure from "./pages/SelectProcedure";
 import Processing from "./pages/Processing";
 import Result from "./pages/Result";
+import { AuthProvider } from "./contexts/AuthContext";
+import ProtectedRoute from "./components/ProtectedRoute";
 
 const queryClient = new QueryClient();
 
@@ -19,16 +21,20 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Login />} />
-          <Route path="/home" element={<Home />} />
-          <Route path="/upload" element={<Upload />} />
-          <Route path="/select-procedure" element={<SelectProcedure />} />
-          <Route path="/processing" element={<Processing />} />
-          <Route path="/result" element={<Result />} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
+        <AuthProvider>
+          <Routes>
+            <Route path="/" element={<Login />} />
+            <Route element={<ProtectedRoute />}>
+              <Route path="/home" element={<Home />} />
+              <Route path="/upload" element={<Upload />} />
+              <Route path="/select-procedure" element={<SelectProcedure />} />
+              <Route path="/processing" element={<Processing />} />
+              <Route path="/result" element={<Result />} />
+            </Route>
+            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
