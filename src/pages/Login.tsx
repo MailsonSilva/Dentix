@@ -1,23 +1,74 @@
-import { Auth } from '@supabase/auth-ui-react';
-import { ThemeSupa } from '@supabase/auth-ui-shared';
-import { supabase } from '@/integrations/supabase/client';
-import { useNavigate } from 'react-router-dom';
-import { useAuth } from '@/contexts/AuthContext';
-import { useEffect } from 'react';
-import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { showError, showSuccess } from "@/utils/toast";
+import { Loader2 } from "lucide-react";
+
+const translateSupabaseError = (message: string) => {
+  const m = message.toLowerCase();
+  if (m.includes("email not confirmed") || m.includes("email not verified")) {
+    return "E-mail não confirmado. Verifique sua caixa de entrada.";
+  }
+  if (m.includes("invalid login credentials") || m.includes("invalid password") || m.includes("invalid")) {
+    return "E-mail ou senha inválidos.";
+  }
+  if (m.includes("user not found") || m.includes("no user")) {
+    return "Usuário não encontrado. Verifique o e-mail informado.";
+  }
+  if (m.includes("too many requests")) {
+    return "Muitas tentativas. Aguarde e tente novamente mais tarde.";
+  }
+  // mensagem padrão
+  return "Ocorreu um erro ao tentar fazer login. Tente novamente.";
+};
 
 const Login = () => {
   const navigate = useNavigate();
   const { session, loading } = useAuth();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     if (!loading && session) {
-      navigate('/home');
+      navigate("/home");
     }
   }, [session, loading, navigate]);
 
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSubmitting(true);
+
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+
+    setSubmitting(false);
+
+    if (error) {
+      const friendly = translateSupabaseError(error.message ?? "");
+      showError(friendly);
+      // If it's email confirmation related, keep user on login to allow troubleshooting.
+      return;
+    }
+
+    // Login bem-sucedido
+    showSuccess("Login realizado com sucesso!");
+    // Se a sessão estiver pronta, o AuthProvider redireciona; navegamos para garantir
+    navigate("/home");
+  };
+
   if (loading) {
-    return null; // or a loading spinner
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background p-4">
+        <Loader2 className="h-16 w-16 animate-spin text-primary" />
+      </div>
+    );
   }
 
   return (
@@ -27,44 +78,40 @@ const Login = () => {
           <img src="/logo.png" alt="Dentix Logo" className="w-40 mx-auto" />
         </CardHeader>
         <CardContent>
-          <Auth
-            supabaseClient={supabase}
-            appearance={{
-              theme: ThemeSupa,
-              variables: {
-                default: {
-                  colors: {
-                    brand: 'hsl(217 91% 52%)',
-                    brandAccent: 'hsl(217 91% 45%)',
-                  },
-                },
-              },
-            }}
-            providers={[]}
-            theme="light"
-            view="sign_in"
-            showLinks={false} // Vamos controlar os links manualmente
-            passwordToggle={true}
-            localization={{
-              variables: {
-                sign_in: {
-                  email_label: 'Seu e-mail',
-                  password_label: 'Sua senha',
-                  button_label: 'Entrar',
-                  email_input_placeholder: 'seu@email.com',
-                },
-                forgotten_password: {
-                    email_label: 'Seu e-mail',
-                    button_label: 'Enviar instruções',
-                    link_text: 'Esqueceu sua senha?',
-                }
-              },
-              // Traduzindo as mensagens de erro diretamente
-              'Invalid login credentials': 'E-mail ou senha inválidos.',
-              'Email not confirmed': 'E-mail ainda não confirmado. Verifique sua caixa de entrada.',
-            }}
-          />
-           <div className="mt-4 text-center text-sm">
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-muted-foreground mb-1">
+                Seu e-mail
+              </label>
+              <Input
+                type="email"
+                placeholder="seu@email.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-muted-foreground mb-1">
+                Sua senha
+              </label>
+              <Input
+                type="password"
+                placeholder="Sua senha"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+              />
+            </div>
+
+            <Button type="submit" className="w-full" disabled={submitting}>
+              {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Entrar
+            </Button>
+          </form>
+
+          <div className="mt-4 text-center text-sm">
             Não tem uma conta?{" "}
             <a href="/signup" className="underline">
               Cadastre-se
