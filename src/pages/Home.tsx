@@ -13,29 +13,23 @@ const Home: React.FC = () => {
     "Usuário";
 
   return (
-    <div className="min-h-screen bg-background p-6">
-      <div className="max-w-4xl mx-auto text-center">
-        <img src="/logo.png" alt="Dentix Logo" className="w-48 mx-auto mb-8" />
+    <div className="min-h-screen bg-background p-6 flex items-center">
+      <div className="max-w-2xl mx-auto text-center w-full">
+        <img src="/logo.png" alt="Dentix Logo" className="w-36 mx-auto mb-8" />
 
-        <h1 className="text-4xl font-bold mb-4 text-foreground">
-          Pronto para transformar sorrisos?
+        <h1 className="text-5xl sm:text-6xl font-extrabold mb-2 text-foreground">
+          Bem-vindo, Dr. {displayName}
         </h1>
 
-        <p className="text-lg text-muted-foreground mb-6">
-          Bem-vindo, Dr
-          <span className="ml-1 text-base align-baseline">(a)</span>
-          . {displayName}
+        <p className="text-lg text-muted-foreground mb-8">
+          Pronto para transformar sorrisos?
         </p>
 
         <div className="flex justify-center">
-          <Button onClick={() => navigate("/upload")}>Nova Simulação</Button>
+          <Button onClick={() => navigate("/upload")} className="px-6 py-3 rounded-lg">
+            Nova Simulação
+          </Button>
         </div>
-
-        <p className="text-xl text-muted-foreground mt-8">
-          Aqui você pode gerenciar seus procedimentos, simulações e perfil.
-        </p>
-
-        {/* Conteúdo adicional da home pode ficar aqui */}
       </div>
     </div>
   );
