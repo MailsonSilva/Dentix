@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -15,7 +15,29 @@ interface PhotoTipsDialogProps {
   onContinue: () => void;
 }
 
+const DEFAULT_PLACEHOLDER = '/placeholder.svg';
+
 export const PhotoTipsDialog: React.FC<PhotoTipsDialogProps> = ({ open, onOpenChange, onContinue }) => {
+  const [img1Src, setImg1Src] = useState('/IMAGEM1.jpg');
+  const [img2Src, setImg2Src] = useState('/IMAGEM2.jpg');
+
+  const handleImg1Error = () => {
+    // tenta alternativas antes do placeholder
+    if (img1Src !== '/IMAGEM1.png') {
+      setImg1Src('/IMAGEM1.png');
+    } else {
+      setImg1Src(DEFAULT_PLACEHOLDER);
+    }
+  };
+
+  const handleImg2Error = () => {
+    if (img2Src !== '/IMAGEM2.png') {
+      setImg2Src('/IMAGEM2.png');
+    } else {
+      setImg2Src(DEFAULT_PLACEHOLDER);
+    }
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[600px]">
@@ -27,8 +49,18 @@ export const PhotoTipsDialog: React.FC<PhotoTipsDialogProps> = ({ open, onOpenCh
         </DialogHeader>
         <div className="py-4 space-y-6">
           <div className="flex justify-center gap-4">
-            <img src="/IMAGEM1.jpg" alt="Foto de exemplo 1" className="w-48 h-48 object-cover rounded-lg border" />
-            <img src="/IMAGEM2.jpg" alt="Foto de exemplo 2" className="w-48 h-48 object-cover rounded-lg border" />
+            <img
+              src={img1Src}
+              alt="Exemplo 1"
+              onError={handleImg1Error}
+              className="w-44 h-44 object-cover rounded-lg border bg-white"
+            />
+            <img
+              src={img2Src}
+              alt="Exemplo 2"
+              onError={handleImg2Error}
+              className="w-44 h-44 object-cover rounded-lg border bg-white"
+            />
           </div>
           <ul className="space-y-2 text-sm text-muted-foreground list-disc list-inside px-6">
             <li>
