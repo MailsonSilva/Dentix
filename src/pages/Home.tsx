@@ -9,7 +9,7 @@ const Home = () => {
       <div className="text-center">
         <img src="/logo.png" alt="Dentix Logo" className="w-48 mx-auto mb-8" />
         <h1 className="text-4xl font-bold mb-4 text-foreground">
-          Bem-vindo, Dr. Miguel
+          Bem-vindo, Dr. Miguelito
         </h1>
         <p className="text-xl text-muted-foreground mb-8">
           Pronto para transformar sorrisos?
