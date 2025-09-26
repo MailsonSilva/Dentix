@@ -15,6 +15,7 @@ import { AuthProvider } from "./contexts/AuthContext";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Layout from "./components/Layout";
 import Simulations from "./pages/Simulations";
+import Profile from "./pages/Profile";
 
 const queryClient = new QueryClient();
 
@@ -35,6 +36,7 @@ const App = () => (
                 <Route path="/upload" element={<Upload />} />
                 <Route path="/select-procedure" element={<SelectProcedure />} />
                 <Route path="/simulations" element={<Simulations />} />
+                <Route path="/profile" element={<Profile />} />
               </Route>
               {/* Rotas de tela cheia sem o cabeçalho */}
               <Route path="/processing" element={<Processing />} />
