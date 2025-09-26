@@ -15,15 +15,16 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { showError, showSuccess } from "@/utils/toast";
 import { useState, useEffect } from "react";
-import { Loader2 } from "lucide-react";
+import { Loader2, UploadCloud } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { uploadFile } from "@/utils/storage";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 const profileFormSchema = z.object({
   nome_completo: z.string().min(3, { message: "O nome completo é obrigatório." }),
   telefone: z.string().optional(),
   empresa: z.string().optional(),
   cpf_cnpj: z.string().optional(),
-  logo_url: z.string().url({ message: "Por favor, insira uma URL válida." }).optional().or(z.literal('')),
 });
 
 type ProfileFormValues = z.infer<typeof profileFormSchema>;
@@ -32,6 +33,8 @@ const Profile = () => {
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(true);
+  const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [logoPreview, setLogoPreview] = useState<string | null>(null);
 
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileFormSchema),
@@ -40,7 +43,6 @@ const Profile = () => {
       telefone: "",
       empresa: "",
       cpf_cnpj: "",
-      logo_url: "",
     },
   });
 
@@ -55,7 +57,7 @@ const Profile = () => {
           .eq("id", user.id)
           .single();
 
-        if (error && error.code !== 'PGRST116') { // PGRST116: 0 rows
+        if (error && error.code !== 'PGRST116') {
           throw error;
         }
 
@@ -65,8 +67,8 @@ const Profile = () => {
             telefone: data.telefone || '',
             empresa: data.empresa || '',
             cpf_cnpj: data.cpf_cnpj || '',
-            logo_url: data.logo_url || '',
           });
+          setLogoPreview(data.logo_url || null);
         }
       } catch (error) {
         console.error("Error fetching profile:", error);
@@ -79,21 +81,41 @@ const Profile = () => {
     fetchProfile();
   }, [user, form]);
 
+  const handleLogoChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      setLogoFile(file);
+      setLogoPreview(URL.createObjectURL(file));
+    }
+  };
+
   async function onSubmit(values: ProfileFormValues) {
     if (!user) return;
     setLoading(true);
     try {
+      const updatePayload: any = {
+        ...values,
+        atualizado_em: new Date().toISOString(),
+      };
+
+      if (logoFile) {
+        // Certifique-se de que o bucket 'logos' existe e tem as permissões corretas.
+        const newLogoUrl = await uploadFile(logoFile, "logos");
+        updatePayload.logo_url = newLogoUrl;
+      }
+
       const { error } = await supabase
         .from("usuarios")
-        .update({
-          ...values,
-          atualizado_em: new Date().toISOString(),
-        })
+        .update(updatePayload)
         .eq("id", user.id);
 
       if (error) throw error;
 
       showSuccess("Perfil atualizado com sucesso!");
+      if (updatePayload.logo_url) {
+        setLogoPreview(updatePayload.logo_url);
+      }
+      setLogoFile(null);
     } catch (error) {
       console.error("Error updating profile:", error);
       showError("Ocorreu um erro ao atualizar seu perfil.");
@@ -119,6 +141,26 @@ const Profile = () => {
         <CardContent>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+              <FormItem>
+                <FormLabel>Logo</FormLabel>
+                <div className="flex items-center gap-4">
+                  <Avatar className="h-20 w-20">
+                    <AvatarImage src={logoPreview || undefined} alt="Logo" />
+                    <AvatarFallback>
+                      <UploadCloud className="h-8 w-8 text-muted-foreground" />
+                    </AvatarFallback>
+                  </Avatar>
+                  <FormControl>
+                    <Input
+                      type="file"
+                      accept="image/png, image/jpeg, image/svg+xml"
+                      onChange={handleLogoChange}
+                      className="max-w-xs"
+                    />
+                  </FormControl>
+                </div>
+              </FormItem>
+
               <FormField
                 control={form.control}
                 name="nome_completo"
@@ -172,19 +214,6 @@ const Profile = () => {
                     <FormLabel>CPF/CNPJ</FormLabel>
                     <FormControl>
                       <Input placeholder="Seu CPF ou CNPJ" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="logo_url"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>URL da Logo</FormLabel>
-                    <FormControl>
-                      <Input placeholder="https://exemplo.com/logo.png" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
