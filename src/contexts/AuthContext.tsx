@@ -35,29 +35,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const getSessionAndProfile = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      setSession(session);
-      setUser(session?.user ?? null);
-
-      if (session?.user) {
-        const { data: profileData, error } = await supabase
-          .from('usuarios')
-          .select('*')
-          .eq('id', session.user.id)
-          .single();
-        
-        if (error && error.code !== 'PGRST116') {
-          console.error("Error fetching profile on initial load:", error);
-        } else {
-          setProfile(profileData as Profile | null);
-        }
-      }
-      setLoading(false);
-    };
-
-    getSessionAndProfile();
-
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
       setSession(session);
       setUser(session?.user ?? null);
