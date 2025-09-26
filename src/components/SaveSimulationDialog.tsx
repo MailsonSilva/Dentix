@@ -52,13 +52,15 @@ export const SaveSimulationDialog: React.FC<SaveSimulationDialogProps> = ({
       const simulatedImageUrl = await uploadBase64Image(simulatedImage, "simulacoes");
 
       // 2. Inserir o registro no banco de dados
+      // NOTE: Não enviamos explicitamente o campo `status` para evitar erros de enum.
+      // O banco usará o valor padrão definido na tabela (ex: 'pendente').
       const { error } = await supabase.from("simulacoes").insert({
         usuario_id: user.id,
         procedimento_id: procedureId,
         nome_paciente: patientName,
         imagem_original_url: originalImageUrl,
         imagem_simulada_url: simulatedImageUrl,
-        status: 'concluida',
+        // status: omitted on purpose to let DB default apply
       });
 
       if (error) throw error;
