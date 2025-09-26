@@ -16,6 +16,7 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import Layout from "./components/Layout";
 import Simulations from "./pages/Simulations";
 import Profile from "./pages/Profile";
+import GuestRoute from "./components/GuestRoute";
 
 const queryClient = new QueryClient();
 
@@ -27,8 +28,10 @@ const App = () => (
       <BrowserRouter>
         <AuthProvider>
           <Routes>
-            <Route path="/" element={<Login />} />
-            <Route path="/signup" element={<SignUp />} />
+            <Route element={<GuestRoute />}>
+              <Route path="/" element={<Login />} />
+              <Route path="/signup" element={<SignUp />} />
+            </Route>
             <Route element={<ProtectedRoute />}>
               {/* Rotas com o cabeçalho */}
               <Route element={<Layout />}>

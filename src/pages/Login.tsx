@@ -1,7 +1,6 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -28,22 +27,15 @@ const translateSupabaseError = (message: string) => {
 
 const Login = () => {
   const navigate = useNavigate();
-  const { session, loading } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
-
-  useEffect(() => {
-    if (!loading && session) {
-      navigate("/home");
-    }
-  }, [session, loading, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
 
-    const { data, error } = await supabase.auth.signInWithPassword({
+    const { error } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
@@ -53,23 +45,12 @@ const Login = () => {
     if (error) {
       const friendly = translateSupabaseError(error.message ?? "");
       showError(friendly);
-      // If it's email confirmation related, keep user on login to allow troubleshooting.
       return;
     }
 
-    // Login bem-sucedido
     showSuccess("Login realizado com sucesso!");
-    // Se a sessão estiver pronta, o AuthProvider redireciona; navegamos para garantir
     navigate("/home");
   };
-
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background p-4">
-        <Loader2 className="h-16 w-16 animate-spin text-primary" />
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
