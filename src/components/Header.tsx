@@ -10,11 +10,11 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "./ui/dropdown-menu";
-import { Avatar, AvatarFallback } from "./ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import { LayoutGrid, LogOut, Home, User } from "lucide-react";
 
 const Header = () => {
-    const { user } = useAuth();
+    const { user, profile } = useAuth();
     const navigate = useNavigate();
 
     const handleLogout = async () => {
@@ -22,7 +22,7 @@ const Header = () => {
         navigate("/");
     };
 
-    const userInitial = user?.user_metadata?.full_name?.charAt(0).toUpperCase() ?? user?.email?.charAt(0).toUpperCase() ?? "?";
+    const userInitial = profile?.nome_completo?.charAt(0).toUpperCase() ?? user?.email?.charAt(0).toUpperCase() ?? "?";
 
     return (
         <header className="sticky top-0 z-40 w-full border-b bg-background">
@@ -49,6 +49,7 @@ const Header = () => {
                             <DropdownMenuTrigger asChild>
                                 <Button variant="ghost" className="relative h-8 w-8 rounded-full">
                                     <Avatar className="h-8 w-8">
+                                        <AvatarImage src={profile?.logo_url || undefined} alt="Logo do usuário" />
                                         <AvatarFallback>{userInitial}</AvatarFallback>
                                     </Avatar>
                                 </Button>
@@ -57,7 +58,7 @@ const Header = () => {
                                 <DropdownMenuLabel className="font-normal">
                                     <div className="flex flex-col space-y-1">
                                         <p className="text-sm font-medium leading-none">
-                                            {user?.user_metadata?.full_name}
+                                            {profile?.nome_completo || user?.user_metadata?.full_name}
                                         </p>
                                         <p className="text-xs leading-none text-muted-foreground">
                                             {user?.email}
