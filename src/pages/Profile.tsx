@@ -19,6 +19,7 @@ import { Loader2, UploadCloud } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { uploadFile } from "@/utils/storage";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { formatCpfCnpj, formatPhone } from "@/lib/formatters";
 
 const profileFormSchema = z.object({
   nome_completo: z.string().min(3, { message: "O nome completo é obrigatório." }),
@@ -64,9 +65,9 @@ const Profile = () => {
         if (data) {
           form.reset({
             nome_completo: data.nome_completo || '',
-            telefone: data.telefone || '',
+            telefone: data.telefone ? formatPhone(data.telefone) : '',
             empresa: data.empresa || '',
-            cpf_cnpj: data.cpf_cnpj || '',
+            cpf_cnpj: data.cpf_cnpj ? formatCpfCnpj(data.cpf_cnpj) : '',
           });
           setLogoPreview(data.logo_url || null);
         }
@@ -95,11 +96,13 @@ const Profile = () => {
     try {
       const updatePayload: any = {
         ...values,
+        // Remove a formatação antes de salvar no banco
+        telefone: values.telefone?.replace(/\D/g, ''),
+        cpf_cnpj: values.cpf_cnpj?.replace(/\D/g, ''),
         atualizado_em: new Date().toISOString(),
       };
 
       if (logoFile) {
-        // Certifique-se de que o bucket 'logos' existe e tem as permissões corretas.
         const newLogoUrl = await uploadFile(logoFile, "logos");
         updatePayload.logo_url = newLogoUrl;
       }
@@ -187,7 +190,11 @@ const Profile = () => {
                   <FormItem>
                     <FormLabel>Telefone</FormLabel>
                     <FormControl>
-                      <Input placeholder="(XX) XXXXX-XXXX" {...field} />
+                      <Input
+                        placeholder="(XX) XXXXX-XXXX"
+                        {...field}
+                        onChange={(e) => field.onChange(formatPhone(e.target.value))}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -213,7 +220,11 @@ const Profile = () => {
                   <FormItem>
                     <FormLabel>CPF/CNPJ</FormLabel>
                     <FormControl>
-                      <Input placeholder="Seu CPF ou CNPJ" {...field} />
+                      <Input
+                        placeholder="Seu CPF ou CNPJ"
+                        {...field}
+                        onChange={(e) => field.onChange(formatCpfCnpj(e.target.value))}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
