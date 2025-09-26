@@ -12,7 +12,7 @@ export const FramingGuide: React.FC = () => {
         {/* Contorno da cabeça */}
         <ellipse 
           cx="100" 
-          cy="90" 
+          cy="80" 
           rx="60" 
           ry="80" 
           stroke="white" 
@@ -24,9 +24,9 @@ export const FramingGuide: React.FC = () => {
         {/* Linha dos olhos */}
         <line 
           x1="60" 
-          y1="75" 
+          y1="65" 
           x2="140" 
-          y2="75" 
+          y2="65" 
           stroke="white" 
           strokeWidth="1" 
           strokeDasharray="3 3" 
@@ -35,9 +35,9 @@ export const FramingGuide: React.FC = () => {
         {/* Linha do nariz */}
         <line 
           x1="100" 
-          y1="75" 
+          y1="65" 
           x2="100" 
-          y2="115" 
+          y2="105" 
           stroke="white" 
           strokeWidth="1" 
           strokeDasharray="3 3" 
@@ -46,9 +46,9 @@ export const FramingGuide: React.FC = () => {
         {/* Linha da boca */}
         <line 
           x1="75" 
-          y1="115" 
+          y1="105" 
           x2="125" 
-          y2="115" 
+          y2="105" 
           stroke="white" 
           strokeWidth="1" 
           strokeDasharray="3 3" 

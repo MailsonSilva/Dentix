@@ -18,22 +18,25 @@ export const CameraFullScreen: React.FC<CameraFullScreenProps> = ({
 }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [stream, setStream] = useState<MediaStream | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
   const [isFlashOn, setIsFlashOn] = useState(false);
   const [hasFlash, setHasFlash] = useState(false);
   const [zoomLevel, setZoomLevel] = useState(1);
   const [zoomRange, setZoomRange] = useState({ min: 1, max: 10, step: 0.1 });
   const [hasZoom, setHasZoom] = useState(false);
+  const [isCameraReady, setIsCameraReady] = useState(false);
 
   const stopStream = useCallback(() => {
-    if (stream) {
-      stream.getTracks().forEach((track) => track.stop());
-      setStream(null);
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((track) => track.stop());
+      streamRef.current = null;
     }
-  }, [stream]);
+    setIsCameraReady(false);
+  }, []);
 
   const startCamera = useCallback(async () => {
+    stopStream();
     if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
       try {
         const constraints = {
@@ -44,24 +47,24 @@ export const CameraFullScreen: React.FC<CameraFullScreenProps> = ({
           },
         };
         const mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
-        setStream(mediaStream);
+        streamRef.current = mediaStream;
 
         if (videoRef.current) {
           videoRef.current.srcObject = mediaStream;
         }
+        setIsCameraReady(true);
 
-        // Check for flash and zoom capabilities
         const videoTrack = mediaStream.getVideoTracks()[0];
         const capabilities = videoTrack.getCapabilities();
         // @ts-ignore
-        if (capabilities.torch) {
-          setHasFlash(true);
-        }
+        setHasFlash(!!capabilities.torch);
         // @ts-ignore
         if (capabilities.zoom) {
           setHasZoom(true);
           // @ts-ignore
           setZoomRange({ min: capabilities.zoom.min, max: capabilities.zoom.max, step: capabilities.zoom.step });
+        } else {
+          setHasZoom(false);
         }
       } catch (err) {
         console.error("Error accessing camera: ", err);
@@ -72,7 +75,7 @@ export const CameraFullScreen: React.FC<CameraFullScreenProps> = ({
       showError("Seu navegador não suporta acesso à câmera.");
       onClose();
     }
-  }, [onClose]);
+  }, [onClose, stopStream]);
 
   useEffect(() => {
     if (open && !capturedImage) {
@@ -80,22 +83,25 @@ export const CameraFullScreen: React.FC<CameraFullScreenProps> = ({
     } else if (!open) {
       stopStream();
     }
+
+    return () => {
+      if (open) {
+        stopStream();
+      }
+    };
   }, [open, capturedImage, startCamera, stopStream]);
 
   useEffect(() => {
-    if (stream && hasZoom) {
-      const videoTrack = stream.getVideoTracks()[0];
-      // @ts-ignore
-      if (videoTrack.getCapabilities().zoom) {
-        try {
-          // @ts-ignore
-          videoTrack.applyConstraints({ advanced: [{ zoom: zoomLevel }] });
-        } catch (error) {
-          console.error("Error applying zoom:", error);
-        }
+    if (streamRef.current && hasZoom && isCameraReady) {
+      const videoTrack = streamRef.current.getVideoTracks()[0];
+      try {
+        // @ts-ignore
+        videoTrack.applyConstraints({ advanced: [{ zoom: zoomLevel }] });
+      } catch (error) {
+        console.error("Error applying zoom:", error);
       }
     }
-  }, [zoomLevel, stream, hasZoom]);
+  }, [zoomLevel, hasZoom, isCameraReady]);
 
   const handleCapture = () => {
     if (videoRef.current && canvasRef.current) {
@@ -132,12 +138,12 @@ export const CameraFullScreen: React.FC<CameraFullScreenProps> = ({
 
   const handleRetake = () => {
     setCapturedImage(null);
-    setZoomLevel(1); // Reset zoom on retake
+    setZoomLevel(1);
   };
 
   const handleToggleFlash = async () => {
-    if (stream && hasFlash) {
-      const videoTrack = stream.getVideoTracks()[0];
+    if (streamRef.current && hasFlash) {
+      const videoTrack = streamRef.current.getVideoTracks()[0];
       try {
         await videoTrack.applyConstraints({ advanced: [{ torch: !isFlashOn }] });
         setIsFlashOn(!isFlashOn);
@@ -229,7 +235,7 @@ export const CameraFullScreen: React.FC<CameraFullScreenProps> = ({
               </Button>
             </>
           ) : (
-            <Button onClick={handleCapture} disabled={!stream} className="w-20 h-20 rounded-full">
+            <Button onClick={handleCapture} disabled={!isCameraReady} className="w-20 h-20 rounded-full">
               <Camera className="h-8 w-8" />
             </Button>
           )}
