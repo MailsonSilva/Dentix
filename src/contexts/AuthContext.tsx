@@ -17,56 +17,115 @@ interface Profile {
 interface AuthContextType {
   session: Session | null;
   user: User | null;
-  profile: Profile | null; // Adiciona o perfil ao contexto
+  profile: Profile | null;
   loading: boolean;
 }
 
 const AuthContext = createContext<AuthContextType>({
   session: null,
   user: null,
-  profile: null, // Valor inicial do perfil
+  profile: null,
   loading: true,
 });
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
-  const [profile, setProfile] = useState<Profile | null>(null); // Estado para o perfil
+  const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      setSession(session);
-      setUser(session?.user ?? null);
+    let isMounted = true;
 
-      if (session?.user) {
+    const fetchProfile = async (userId: string | undefined) => {
+      if (!userId) {
+        if (isMounted) setProfile(null);
+        return;
+      }
+      try {
         const { data: profileData, error } = await supabase
           .from('usuarios')
           .select('*')
-          .eq('id', session.user.id)
+          .eq('id', userId)
           .single();
 
         if (error && error.code !== 'PGRST116') {
-          console.error("Error fetching profile on auth state change:", error);
+          console.error('Error fetching profile:', error);
+          if (isMounted) setProfile(null);
         } else {
-          setProfile(profileData as Profile | null);
+          if (isMounted) setProfile(profileData as Profile | null);
         }
-      } else {
-        // Limpa o perfil no logout
-        setProfile(null);
+      } catch (err) {
+        console.error('Unexpected error fetching profile:', err);
+        if (isMounted) setProfile(null);
       }
-      setLoading(false);
+    };
+
+    // Initialize: get current session immediately
+    const init = async () => {
+      try {
+        const {
+          data: { session: initialSession },
+        } = await supabase.auth.getSession();
+        if (!isMounted) return;
+
+        setSession(initialSession ?? null);
+        setUser(initialSession?.user ?? null);
+
+        if (initialSession?.user) {
+          await fetchProfile(initialSession.user.id);
+        } else {
+          setProfile(null);
+        }
+      } catch (err) {
+        console.error('Error getting initial session:', err);
+        setSession(null);
+        setUser(null);
+        setProfile(null);
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+
+      // Now subscribe to auth state changes
+      const { data } = supabase.auth.onAuthStateChange(async (_event, newSession) => {
+        if (!isMounted) return;
+        setSession(newSession ?? null);
+        setUser(newSession?.user ?? null);
+
+        if (newSession?.user) {
+          await fetchProfile(newSession.user.id);
+        } else {
+          setProfile(null);
+        }
+      });
+
+      return data.subscription;
+    };
+
+    let subscriptionRef: { unsubscribe?: () => void } | null = null;
+
+    init().then((sub) => {
+      // keep reference to subscription so we can unsubscribe in cleanup
+      subscriptionRef = sub as any;
     });
 
     return () => {
-      subscription.unsubscribe();
+      isMounted = false;
+      try {
+        // unsubscribe if available
+        if (subscriptionRef && typeof (subscriptionRef as any).unsubscribe === 'function') {
+          (subscriptionRef as any).unsubscribe();
+        }
+      } catch (err) {
+        // ignore
+      }
     };
   }, []);
 
   const value = {
     session,
     user,
-    profile, // Fornece o perfil no contexto
+    profile,
     loading,
   };
 
