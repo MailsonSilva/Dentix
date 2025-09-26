@@ -39,8 +39,9 @@ export const uploadBase64Image = async (base64Image: string, bucket: string): Pr
             throw error;
         }
 
-        const { data: { publicUrl } } = supabase.storage.from(bucket).getPublicUrl(data.path);
-        return publicUrl;
+        // Use the known filePath to get a public URL (more reliable than relying on upload response)
+        const { data: publicData } = supabase.storage.from(bucket).getPublicUrl(filePath);
+        return publicData.publicUrl;
     } catch (error) {
         console.error("Error uploading image:", error);
         throw new Error("Falha ao enviar a imagem.");
@@ -64,8 +65,9 @@ export const uploadFile = async (file: File, bucket: string): Promise<string> =>
             throw uploadError;
         }
 
-        const { data: { publicUrl } } = supabase.storage.from(bucket).getPublicUrl(data.path);
-        return publicUrl;
+        // Use the known filePath to get a public URL
+        const { data: publicData } = supabase.storage.from(bucket).getPublicUrl(filePath);
+        return publicData.publicUrl;
     } catch (error) {
         console.error("Error uploading file:", error);
         throw new Error("Falha ao enviar o arquivo.");

@@ -41,8 +41,8 @@ export const SaveSimulationDialog: React.FC<SaveSimulationDialogProps> = ({
       return;
     }
     if (!user || !procedureId || !originalImage || !simulatedImage) {
-        showError("Faltam dados para salvar a simulação.");
-        return;
+      showError("Faltam dados para salvar a simulação.");
+      return;
     }
 
     setLoading(true);
@@ -103,7 +103,11 @@ export const SaveSimulationDialog: React.FC<SaveSimulationDialogProps> = ({
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={loading}>
             Cancelar
           </Button>
-          <Button onClick={handleSave} disabled={loading}>
+          <Button
+            onClick={handleSave}
+            disabled={loading}
+            className="bg-[#0e4dab] hover:bg-[#0b3a87] text-white"
+          >
             {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Salvar
           </Button>
