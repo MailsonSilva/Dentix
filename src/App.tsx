@@ -17,6 +17,8 @@ import Layout from "./components/Layout";
 import Simulations from "./pages/Simulations";
 import Profile from "./pages/Profile";
 import GuestRoute from "./components/GuestRoute";
+import ForgotPassword from "./pages/ForgotPassword";
+import UpdatePassword from "./pages/UpdatePassword";
 
 const queryClient = new QueryClient();
 
@@ -31,7 +33,11 @@ const App = () => (
             <Route element={<GuestRoute />}>
               <Route path="/" element={<Login />} />
               <Route path="/signup" element={<SignUp />} />
+              <Route path="/forgot-password" element={<ForgotPassword />} />
             </Route>
+            
+            <Route path="/update-password" element={<UpdatePassword />} />
+
             <Route element={<ProtectedRoute />}>
               {/* Rotas com o cabeçalho */}
               <Route element={<Layout />}>
