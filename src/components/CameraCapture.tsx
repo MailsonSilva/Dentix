@@ -45,7 +45,7 @@ export const CameraCapture: React.FC<CameraCaptureProps> = ({ open, onOpenChange
           // Check for flash capability
           const videoTrack = mediaStream.getVideoTracks()[0];
           const capabilities = videoTrack.getCapabilities();
-          setHasFlash(!!capabilities.torch);
+          setHasFlash(!!(capabilities as any).torch);
 
         } catch (err) {
           console.error("Error accessing camera: ", err);
@@ -119,7 +119,7 @@ export const CameraCapture: React.FC<CameraCaptureProps> = ({ open, onOpenChange
     if (stream && hasFlash) {
       const videoTrack = stream.getVideoTracks()[0];
       try {
-        await videoTrack.applyConstraints({ advanced: [{ torch: !isFlashOn }] });
+        await videoTrack.applyConstraints({ advanced: [{ torch: !isFlashOn }] } as any);
         setIsFlashOn(!isFlashOn);
       } catch (err) {
         console.error("Failed to toggle flash", err);

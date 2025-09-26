@@ -12,7 +12,7 @@ interface Simulation {
     imagem_original_url: string;
     imagem_simulada_url: string;
     criado_em: string;
-    procedimentos: { nome: string } | null;
+    procedimentos: { nome: string }[] | null;
 }
 
 const Simulations = () => {
@@ -80,7 +80,7 @@ const Simulations = () => {
                             <CardHeader>
                                 <CardTitle>{sim.nome_paciente}</CardTitle>
                                 <p className="text-sm text-muted-foreground">
-                                    {sim.procedimentos?.nome}
+                                    {sim.procedimentos?.[0]?.nome}
                                 </p>
                             </CardHeader>
                             <CardContent className="grid grid-cols-2 gap-4">

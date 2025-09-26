@@ -145,7 +145,7 @@ export const CameraFullScreen: React.FC<CameraFullScreenProps> = ({
     if (streamRef.current && hasFlash) {
       const videoTrack = streamRef.current.getVideoTracks()[0];
       try {
-        await videoTrack.applyConstraints({ advanced: [{ torch: !isFlashOn }] });
+        await videoTrack.applyConstraints({ advanced: [{ torch: !isFlashOn }] } as any);
         setIsFlashOn(!isFlashOn);
       } catch (err) {
         console.error("Failed to toggle flash", err);
