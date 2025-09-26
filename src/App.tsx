@@ -5,7 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import NotFound from "./pages/NotFound";
 import Login from "./pages/Login";
-import SignUp from "./pages/SignUp"; // Importa a nova página
+import SignUp from "./pages/SignUp";
 import Home from "./pages/Home";
 import Upload from "./pages/Upload";
 import SelectProcedure from "./pages/SelectProcedure";
@@ -13,6 +13,8 @@ import Processing from "./pages/Processing";
 import Result from "./pages/Result";
 import { AuthProvider } from "./contexts/AuthContext";
 import ProtectedRoute from "./components/ProtectedRoute";
+import Layout from "./components/Layout";
+import Simulations from "./pages/Simulations";
 
 const queryClient = new QueryClient();
 
@@ -25,11 +27,16 @@ const App = () => (
         <AuthProvider>
           <Routes>
             <Route path="/" element={<Login />} />
-            <Route path="/signup" element={<SignUp />} /> {/* Adiciona a nova rota */}
+            <Route path="/signup" element={<SignUp />} />
             <Route element={<ProtectedRoute />}>
-              <Route path="/home" element={<Home />} />
-              <Route path="/upload" element={<Upload />} />
-              <Route path="/select-procedure" element={<SelectProcedure />} />
+              {/* Rotas com o cabeçalho */}
+              <Route element={<Layout />}>
+                <Route path="/home" element={<Home />} />
+                <Route path="/upload" element={<Upload />} />
+                <Route path="/select-procedure" element={<SelectProcedure />} />
+                <Route path="/simulations" element={<Simulations />} />
+              </Route>
+              {/* Rotas de tela cheia sem o cabeçalho */}
               <Route path="/processing" element={<Processing />} />
               <Route path="/result" element={<Result />} />
             </Route>

@@ -7,7 +7,7 @@ import { showError } from "@/utils/toast";
 const Processing = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { imageFile, imagePreview, procedureName } = location.state || {};
+  const { imageFile, imagePreview, procedureName, procedureId } = location.state || {};
 
   // Função para converter um arquivo para base64
   const toBase64 = (file: File): Promise<string> =>
@@ -89,6 +89,7 @@ const Processing = () => {
             state: {
               originalImage: imagePreview,
               simulatedImage: simulatedImageUrl,
+              procedureId: procedureId,
             },
           });
         } else {
@@ -131,7 +132,7 @@ const Processing = () => {
     };
 
     processImage();
-  }, [imageFile, procedureName, imagePreview, navigate]);
+  }, [imageFile, procedureName, imagePreview, navigate, procedureId]);
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-background p-4">

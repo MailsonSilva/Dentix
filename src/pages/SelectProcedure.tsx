@@ -51,6 +51,7 @@ const SelectProcedure = () => {
             imageFile,
             imagePreview,
             procedureName: procedure.webhook_valor,
+            procedureId: procedure.id,
           },
         });
       }
