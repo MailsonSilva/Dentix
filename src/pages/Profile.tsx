@@ -103,7 +103,7 @@ const Profile = () => {
       };
 
       if (logoFile) {
-        const newLogoUrl = await uploadFile(logoFile, "logos");
+        const newLogoUrl = await uploadFile(logoFile, "logos_empresas");
         updatePayload.logo_url = newLogoUrl;
       }
 

@@ -48,8 +48,8 @@ export const SaveSimulationDialog: React.FC<SaveSimulationDialogProps> = ({
     setLoading(true);
     try {
       // 1. Upload das imagens para o armazenamento
-      const originalImageUrl = await uploadBase64Image(originalImage, "simulations");
-      const simulatedImageUrl = await uploadBase64Image(simulatedImage, "simulations");
+      const originalImageUrl = await uploadBase64Image(originalImage, "simulacoes");
+      const simulatedImageUrl = await uploadBase64Image(simulatedImage, "simulacoes");
 
       // 2. Inserir o registro no banco de dados
       const { error } = await supabase.from("simulacoes").insert({
