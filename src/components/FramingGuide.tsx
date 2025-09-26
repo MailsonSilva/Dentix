@@ -2,32 +2,56 @@ import React from 'react';
 
 export const FramingGuide: React.FC = () => {
   return (
-    <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+    <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-60">
       <svg
-        viewBox="0 0 100 100"
-        className="w-full h-full"
+        width="100%"
+        height="100%"
+        viewBox="0 0 200 200"
         preserveAspectRatio="xMidYMid meet"
       >
-        {/* This oval shape guides face placement */}
-        <ellipse
-          cx="50"
-          cy="50"
-          rx="30"
-          ry="40"
-          stroke="rgba(255, 255, 255, 0.5)"
-          strokeWidth="1"
-          strokeDasharray="4 2"
-          fill="none"
+        {/* Contorno da cabeça */}
+        <ellipse 
+          cx="100" 
+          cy="100" 
+          rx="60" 
+          ry="80" 
+          stroke="white" 
+          strokeWidth="2" 
+          strokeDasharray="5 5" 
+          fill="none" 
         />
-        {/* A line for the smile/mouth level */}
-        <line
-          x1="30"
-          y1="60"
-          x2="70"
-          y2="60"
-          stroke="rgba(255, 255, 255, 0.5)"
-          strokeWidth="1"
-          strokeDasharray="4 2"
+        
+        {/* Linha dos olhos */}
+        <line 
+          x1="60" 
+          y1="85" 
+          x2="140" 
+          y2="85" 
+          stroke="white" 
+          strokeWidth="1" 
+          strokeDasharray="3 3" 
+        />
+        
+        {/* Linha do nariz */}
+        <line 
+          x1="100" 
+          y1="85" 
+          x2="100" 
+          y2="125" 
+          stroke="white" 
+          strokeWidth="1" 
+          strokeDasharray="3 3" 
+        />
+
+        {/* Linha da boca */}
+        <line 
+          x1="75" 
+          y1="125" 
+          x2="125" 
+          y2="125" 
+          stroke="white" 
+          strokeWidth="1" 
+          strokeDasharray="3 3" 
         />
       </svg>
     </div>
