@@ -75,14 +75,9 @@ const Login = () => {
             </div>
 
             <div>
-              <div className="flex justify-between items-center mb-1">
-                <label className="block text-sm font-medium text-muted-foreground">
-                  Sua senha
-                </label>
-                <a href="/forgot-password" className="text-sm underline text-muted-foreground hover:text-foreground">
-                  Esqueceu a senha?
-                </a>
-              </div>
+              <label className="block text-sm font-medium text-muted-foreground mb-1">
+                Sua senha
+              </label>
               <div className="relative">
                 <Input
                   type={showPassword ? "text" : "password"}
@@ -112,6 +107,11 @@ const Login = () => {
             Não tem uma conta?{" "}
             <a href="/signup" className="underline">
               Cadastre-se
+            </a>
+          </div>
+          <div className="mt-2 text-center text-sm">
+            <a href="/forgot-password" className="underline text-muted-foreground hover:text-foreground">
+              Esqueceu a senha?
             </a>
           </div>
         </CardContent>
