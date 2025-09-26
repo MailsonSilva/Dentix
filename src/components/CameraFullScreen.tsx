@@ -1,6 +1,6 @@
 import React, { useRef, useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
-import { Camera, Check, Zap, ZapOff, X } from "lucide-react";
+import { Camera, Check, Zap, ZapOff, X, ZoomIn, ZoomOut } from "lucide-react";
 import { showError } from "@/utils/toast";
 import { FramingGuide } from "./FramingGuide";
 import { Slider } from "@/components/ui/slider";
@@ -205,7 +205,8 @@ export const CameraFullScreen: React.FC<CameraFullScreenProps> = ({
       {/* Controles */}
       <div className="absolute bottom-0 left-0 w-full flex flex-col items-center gap-4 pb-8 z-20">
         {hasZoom && !capturedImage && (
-          <div className="w-4/5 max-w-xs p-2 bg-black/30 rounded-lg">
+          <div className="w-4/5 max-w-xs p-2 bg-black/50 rounded-lg flex items-center gap-4">
+            <ZoomOut className="h-6 w-6 text-white" />
             <Slider
               value={[zoomLevel]}
               min={zoomRange.min}
@@ -213,6 +214,7 @@ export const CameraFullScreen: React.FC<CameraFullScreenProps> = ({
               step={zoomRange.step}
               onValueChange={(value) => setZoomLevel(value[0])}
             />
+            <ZoomIn className="h-6 w-6 text-white" />
           </div>
         )}
         <div className="flex justify-center items-center gap-4">

@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { UploadCloud, Image as ImageIcon, Camera, ArrowLeft } from "lucide-react";
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { CameraFullScreen } from "@/components/CameraFullScreen";
 
@@ -42,6 +42,10 @@ const Upload = () => {
       });
     }
   };
+
+  const handleCloseCamera = useCallback(() => {
+    setIsCameraOpen(false);
+  }, []);
 
   return (
     <>
@@ -119,7 +123,7 @@ const Upload = () => {
       </div>
       <CameraFullScreen
         open={isCameraOpen}
-        onClose={() => setIsCameraOpen(false)}
+        onClose={handleCloseCamera}
         onCapture={handleCapture}
       />
     </>
