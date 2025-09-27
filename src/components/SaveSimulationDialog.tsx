@@ -51,26 +51,42 @@ export const SaveSimulationDialog: React.FC<SaveSimulationDialogProps> = ({
       const originalImageUrl = await uploadBase64Image(originalImage, "simulacoes");
       const simulatedImageUrl = await uploadBase64Image(simulatedImage, "simulacoes");
 
-      // 2. Inserir o registro no banco de dados
-      // NOTE: Não enviamos explicitamente o campo `status` para evitar erros de enum.
-      // O banco usará o valor padrão definido na tabela (ex: 'pendente').
-      const { error } = await supabase.from("simulacoes").insert({
-        usuario_id: user.id,
-        procedimento_id: procedureId,
-        nome_paciente: patientName,
-        imagem_original_url: originalImageUrl,
-        imagem_simulada_url: simulatedImageUrl,
-        // status: omitted on purpose to let DB default apply
-      });
+      console.log("Uploaded images URLs:", { originalImageUrl, simulatedImageUrl });
 
-      if (error) throw error;
+      // 2. Inserir o registro no banco de dados
+      const { data: insertData, error: insertError } = await supabase
+        .from("simulacoes")
+        .insert({
+          usuario_id: user.id,
+          procedimento_id: procedureId,
+          nome_paciente: patientName,
+          imagem_original_url: originalImageUrl,
+          imagem_simulada_url: simulatedImageUrl,
+          // status omitted to rely on DB default
+        })
+        .select()
+        .single();
+
+      if (insertError) {
+        console.error("Error inserting simulation record:", insertError);
+        // Show backend message if provided
+        showError(
+          insertError.message ||
+            "Ocorreu um erro ao salvar a simulação no banco de dados.",
+        );
+        setLoading(false);
+        return;
+      }
+
+      console.log("Inserted simulation record:", insertData);
 
       showSuccess("Simulação salva com sucesso!");
       onOpenChange(false);
       setPatientName("");
-    } catch (error) {
-      console.error("Error saving simulation:", error);
-      showError("Ocorreu um erro ao salvar a simulação.");
+    } catch (error: any) {
+      console.error("Error saving simulation (full):", error);
+      // Prefer friendly message, but include more details in console for debugging
+      showError(error?.message ?? "Ocorreu um erro ao salvar a simulação.");
     } finally {
       setLoading(false);
     }
