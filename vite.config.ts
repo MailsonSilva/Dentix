@@ -14,7 +14,7 @@ export default defineConfig(() => ({
     react(),
     VitePWA({
       registerType: "autoUpdate",
-      includeAssets: ["favicon.ico", "apple-touch-icon.png", "logo.png"],
+      includeAssets: ["favicon.ico", "apple-touch-icon.png", "icone.png"],
       manifest: {
         name: "Dentix",
         short_name: "Dentix",
@@ -26,7 +26,7 @@ export default defineConfig(() => ({
         start_url: "/",
         icons: [
           {
-            src: "logo.png",
+            src: "icone.png",
             sizes: "512x512",
             type: "image/png",
             purpose: "any maskable",
