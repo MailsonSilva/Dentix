@@ -164,15 +164,12 @@ export const CameraFullScreen: React.FC<CameraFullScreenProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 bg-black w-screen h-screen flex flex-col">
-      {/* Botão fechar */}
-      <div className="absolute top-4 left-4 z-20">
+      {/* Header */}
+      <div className="flex justify-between items-center p-4 z-10">
         <Button variant="ghost" size="icon" onClick={handleClose}>
           <X className="h-6 w-6 text-white" />
         </Button>
-      </div>
-      {/* Flash */}
-      {hasFlash && !capturedImage && (
-        <div className="absolute top-4 right-4 z-20">
+        {hasFlash && !capturedImage && (
           <Button
             variant="outline"
             size="icon"
@@ -185,10 +182,13 @@ export const CameraFullScreen: React.FC<CameraFullScreenProps> = ({
               <Zap className="h-5 w-5 text-white" />
             )}
           </Button>
-        </div>
-      )}
+        )}
+        {/* Spacer to keep close button left-aligned if flash is not available */}
+        {!hasFlash && <div className="w-10 h-10" />}
+      </div>
+
       {/* Visualização da câmera ou imagem capturada */}
-      <div className="relative flex-1 w-full h-full flex items-center justify-center">
+      <div className="relative flex-1 w-full flex items-center justify-center overflow-hidden">
         {capturedImage ? (
           <img
             src={capturedImage}
@@ -208,8 +208,9 @@ export const CameraFullScreen: React.FC<CameraFullScreenProps> = ({
         )}
         <canvas ref={canvasRef} className="hidden" />
       </div>
+
       {/* Controles */}
-      <div className="absolute bottom-0 left-0 w-full flex flex-col items-center gap-4 pb-8 z-20">
+      <div className="flex flex-col items-center gap-4 p-4 z-10">
         {hasZoom && !capturedImage && (
           <div className="w-4/5 max-w-xs p-2 bg-black/50 rounded-lg flex items-center gap-4">
             <ZoomOut className="h-6 w-6 text-white" />
