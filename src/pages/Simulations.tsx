@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/componen
 import { Skeleton } from "@/components/ui/skeleton";
 import { showError } from "@/utils/toast";
 import { format } from "date-fns";
+import SupabaseImage from "@/components/SupabaseImage";
 
 interface Simulation {
     id: string;
@@ -86,11 +87,21 @@ const Simulations = () => {
                             <CardContent className="grid grid-cols-2 gap-4">
                                 <div>
                                     <h4 className="text-sm font-semibold mb-2 text-center">Antes</h4>
-                                    <img src={sim.imagem_original_url} alt="Original" className="rounded-md aspect-square object-cover" />
+                                    <SupabaseImage 
+                                        bucket="simulacoes" 
+                                        url={sim.imagem_original_url} 
+                                        alt="Original" 
+                                        className="rounded-md aspect-square object-cover" 
+                                    />
                                 </div>
                                 <div>
                                     <h4 className="text-sm font-semibold mb-2 text-center">Depois</h4>
-                                    <img src={sim.imagem_simulada_url} alt="Simulada" className="rounded-md aspect-square object-cover" />
+                                    <SupabaseImage 
+                                        bucket="simulacoes" 
+                                        url={sim.imagem_simulada_url} 
+                                        alt="Simulada" 
+                                        className="rounded-md aspect-square object-cover" 
+                                    />
                                 </div>
                             </CardContent>
                             <CardFooter>
