@@ -12,14 +12,15 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { showError, showSuccess } from "@/utils/toast";
 import { useState, useEffect } from "react";
-import { Loader2, UploadCloud } from "lucide-react";
+import { Loader2, UploadCloud, LogOut } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { uploadFile } from "@/utils/storage";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { formatCpfCnpj, formatPhone } from "@/lib/formatters";
+import { useNavigate } from "react-router-dom";
 
 const profileFormSchema = z.object({
   nome_completo: z.string().min(3, { message: "O nome completo é obrigatório." }),
@@ -32,6 +33,7 @@ type ProfileFormValues = z.infer<typeof profileFormSchema>;
 
 const Profile = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(true);
   const [logoFile, setLogoFile] = useState<File | null>(null);
@@ -126,6 +128,11 @@ const Profile = () => {
       setLoading(false);
     }
   }
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    navigate("/");
+  };
 
   if (fetching) {
     return (
@@ -237,6 +244,12 @@ const Profile = () => {
             </form>
           </Form>
         </CardContent>
+        <CardFooter className="flex justify-end">
+          <Button variant="outline" onClick={handleLogout}>
+            <LogOut className="mr-2 h-4 w-4" />
+            Sair
+          </Button>
+        </CardFooter>
       </Card>
     </div>
   );
