@@ -146,7 +146,7 @@ const Profile = () => {
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
               <FormItem>
                 <FormLabel>Logo</FormLabel>
-                <div className="flex items-center gap-4">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-4">
                   <Avatar className="h-20 w-20">
                     <AvatarImage src={logoPreview || undefined} alt="Logo" />
                     <AvatarFallback>
