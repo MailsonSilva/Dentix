@@ -1,7 +1,8 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { X, ChevronLeft, ChevronRight } from "lucide-react";
+import { X, ChevronLeft, ChevronRight, AlertTriangle } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
 interface ImageItem {
   src: string;
@@ -21,57 +22,79 @@ const ImageCarouselDialog: React.FC<ImageCarouselDialogProps> = ({
   images,
   startIndex = 0,
 }) => {
-  const [index, setIndex] = useState<number>(Math.max(0, startIndex));
-  const [loaded, setLoaded] = useState(false);
-  const [errored, setErrored] = useState(false);
-  const [fetchedSrc, setFetchedSrc] = useState<string | null>(null);
-  const [isFetching, setIsFetching] = useState(false);
+  const [index, setIndex] = useState(startIndex);
+  const [signedSrc, setSignedSrc] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [hasError, setHasError] = useState(false);
+
+  const currentImage = images[index];
 
   useEffect(() => {
     if (open) {
       setIndex(Math.min(Math.max(0, startIndex), Math.max(0, images.length - 1)));
-      setLoaded(false);
-      setErrored(false);
-      setFetchedSrc(null);
     }
   }, [open, startIndex, images.length]);
 
   useEffect(() => {
-    // reset load/error state when switching images
-    setLoaded(false);
-    setErrored(false);
-    setFetchedSrc(null);
-  }, [index]);
+    let isMounted = true;
+    if (!currentImage?.src || !open) return;
 
-  // Clean up object URL when component unmounts or when fetchedSrc changes
-  useEffect(() => {
-    return () => {
-      if (fetchedSrc) {
-        URL.revokeObjectURL(fetchedSrc);
+    setIsLoading(true);
+    setHasError(false);
+    setSignedSrc(null);
+
+    const getSignedUrl = async () => {
+      try {
+        const urlObject = new URL(currentImage.src);
+        const pathParts = urlObject.pathname.split('/');
+        const bucket = pathParts[3];
+        const path = pathParts.slice(4).join('/');
+
+        if (!bucket || !path) {
+          throw new Error("Could not parse bucket and path from URL");
+        }
+
+        const { data, error } = await supabase.storage
+          .from(bucket)
+          .createSignedUrl(path, 60 * 5); // 5 minutes expiry
+
+        if (error) throw error;
+
+        if (isMounted) {
+          setSignedSrc(data.signedUrl);
+        }
+      } catch (error) {
+        console.error('Error creating signed URL for carousel:', error);
+        if (isMounted) {
+          setHasError(true);
+          setIsLoading(false);
+        }
       }
     };
-  }, [fetchedSrc]);
 
-  const prev = useCallback(() => {
+    getSignedUrl();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [index, currentImage, open]);
+
+  const handlePrev = useCallback(() => {
     setIndex((i) => (i <= 0 ? images.length - 1 : i - 1));
   }, [images.length]);
 
-  const next = useCallback(() => {
+  const handleNext = useCallback(() => {
     setIndex((i) => (i >= images.length - 1 ? 0 : i + 1));
   }, [images.length]);
 
   const onKeyDown = useCallback(
     (e: KeyboardEvent) => {
       if (!open) return;
-      if (e.key === "ArrowLeft") {
-        prev();
-      } else if (e.key === "ArrowRight") {
-        next();
-      } else if (e.key === "Escape") {
-        onOpenChange(false);
-      }
+      if (e.key === "ArrowLeft") handlePrev();
+      else if (e.key === "ArrowRight") handleNext();
+      else if (e.key === "Escape") onOpenChange(false);
     },
-    [open, prev, next, onOpenChange],
+    [open, handlePrev, handleNext, onOpenChange],
   );
 
   useEffect(() => {
@@ -81,169 +104,99 @@ const ImageCarouselDialog: React.FC<ImageCarouselDialogProps> = ({
 
   if (!open) return null;
 
-  const current = images[index];
-
-  // Attempt to fetch the image as a blob and show it via an object URL (so it opens inside the dialog)
-  const fetchStoredImage = () => {
-    if (!current?.src) {
-      setErrored(true);
-      return;
-    }
-
-    setIsFetching(true);
-    // fetch the resource and convert to blob
-    fetch(current.src)
-      .then((res) => {
-        if (!res.ok) throw new Error("Network response was not ok");
-        return res.blob();
-      })
-      .then((blob) => {
-        // revoke previous if exists
-        if (fetchedSrc) URL.revokeObjectURL(fetchedSrc);
-        const url = URL.createObjectURL(blob);
-        setFetchedSrc(url);
-        setErrored(false);
-        setLoaded(true); // mark as loaded to show the image
-      })
-      .catch(() => {
-        setErrored(true);
-      })
-      .finally(() => {
-        setIsFetching(false);
-      });
-  };
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-5xl w-full p-0">
-        <div className="relative bg-black/95 text-white rounded-md overflow-hidden">
+      <DialogContent className="max-w-5xl w-full p-0 border-0 bg-transparent shadow-none">
+        <div className="relative bg-black/80 text-white rounded-lg overflow-hidden backdrop-blur-sm">
           {/* Header with close */}
-          <div className="absolute top-3 right-3 z-20 flex gap-2">
+          <div className="absolute top-3 right-3 z-20">
             <Button
               variant="ghost"
               size="icon"
               onClick={() => onOpenChange(false)}
-              className="bg-black/40 hover:bg-black/50 text-white"
+              className="bg-black/40 hover:bg-black/50 text-white rounded-full"
               aria-label="Fechar"
             >
-              <X className="h-5 w-5" />
+              <X className="h-6 w-6" />
             </Button>
           </div>
 
-          {/* Left/Right controls */}
-          <div className="absolute inset-y-0 left-0 z-10 flex items-center">
-            <button
-              aria-label="Anterior"
-              onClick={prev}
-              className="p-3 m-3 rounded-full bg-black/30 hover:bg-black/50 text-white"
-            >
-              <ChevronLeft className="h-6 w-6" />
-            </button>
-          </div>
-          <div className="absolute inset-y-0 right-0 z-10 flex items-center">
-            <button
-              aria-label="Próximo"
-              onClick={next}
-              className="p-3 m-3 rounded-full bg-black/30 hover:bg-black/50 text-white"
-            >
-              <ChevronRight className="h-6 w-6" />
-            </button>
-          </div>
+          {/* Navigation */}
+          {images.length > 1 && (
+            <>
+              <div className="absolute inset-y-0 left-0 z-10 flex items-center">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  aria-label="Anterior"
+                  onClick={handlePrev}
+                  className="m-3 rounded-full bg-black/30 hover:bg-black/50 text-white h-12 w-12"
+                >
+                  <ChevronLeft className="h-8 w-8" />
+                </Button>
+              </div>
+              <div className="absolute inset-y-0 right-0 z-10 flex items-center">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  aria-label="Próximo"
+                  onClick={handleNext}
+                  className="m-3 rounded-full bg-black/30 hover:bg-black/50 text-white h-12 w-12"
+                >
+                  <ChevronRight className="h-8 w-8" />
+                </Button>
+              </div>
+            </>
+          )}
 
           {/* Image area */}
-          <div className="w-full flex items-center justify-center min-h-[60vh] bg-black p-4">
-            {current ? (
-              <div className="relative flex items-center justify-center w-full">
-                {/* Spinner while loading */}
-                {!loaded && !errored && !isFetching && (
-                  <div className="absolute flex flex-col items-center gap-2">
-                    <div className="w-12 h-12 border-4 border-white/20 border-t-white rounded-full animate-spin" />
-                    <div className="text-sm text-white/80">Carregando imagem…</div>
-                  </div>
-                )}
-
-                {/* If we fetched a blob, use it; otherwise use the original src */}
-                <img
-                  src={fetchedSrc ?? current.src}
-                  alt={current.alt || `Imagem ${index + 1}`}
-                  onLoad={() => setLoaded(true)}
-                  onError={() => {
-                    // If loading failed from direct src, set errored so user can request fetch
-                    setErrored(true);
-                    setLoaded(false);
-                  }}
-                  className={`mx-auto max-h-[80vh] max-w-[96vw] object-contain transition-opacity duration-300 ${
-                    loaded ? "opacity-100" : "opacity-0"
-                  }`}
-                  loading="lazy"
-                />
-
-                {/* Error fallback: Try to load the stored (uploaded) image inside the dialog */}
-                {errored && (
-                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 p-4">
-                    <div className="text-center">
-                      <div className="text-lg font-semibold">Não foi possível carregar a imagem diretamente</div>
-                      <div className="text-sm text-white/80 mt-1">{current.alt}</div>
-                    </div>
-
-                    <div className="flex gap-2">
-                      <Button
-                        onClick={fetchStoredImage}
-                        disabled={isFetching}
-                        className="px-3 py-2"
-                      >
-                        {isFetching ? "Carregando..." : "Abrir imagem carregada"}
-                      </Button>
-
-                      <Button
-                        variant="ghost"
-                        onClick={() => {
-                          // reset and try to reload the original src by toggling loaded state
-                          setErrored(false);
-                          setLoaded(false);
-                          // forcing a reload can be achieved by setting fetchedSrc to null and letting img try current.src again
-                          if (fetchedSrc) {
-                            URL.revokeObjectURL(fetchedSrc);
-                            setFetchedSrc(null);
-                          }
-                        }}
-                      >
-                        Tentar novamente
-                      </Button>
-                    </div>
-                  </div>
-                )}
+          <div className="w-full flex items-center justify-center h-[calc(100vh-80px)] p-4">
+            {isLoading && (
+              <div className="absolute flex flex-col items-center gap-2">
+                <div className="w-12 h-12 border-4 border-white/20 border-t-white rounded-full animate-spin" />
               </div>
-            ) : (
-              <div className="p-8 text-center text-sm text-muted-foreground">Imagem indisponível</div>
+            )}
+            {hasError && !isLoading && (
+              <div className="text-center text-red-400 flex flex-col items-center gap-2">
+                <AlertTriangle className="h-12 w-12" />
+                <p>Não foi possível carregar a imagem.</p>
+              </div>
+            )}
+            {signedSrc && !hasError && (
+              <img
+                src={signedSrc}
+                alt={currentImage?.alt || `Imagem ${index + 1}`}
+                onLoad={() => setIsLoading(false)}
+                onError={() => {
+                  setHasError(true);
+                  setIsLoading(false);
+                }}
+                className={`mx-auto max-h-full max-w-full object-contain transition-opacity duration-300 ${
+                  isLoading ? "opacity-0" : "opacity-100"
+                }`}
+              />
             )}
           </div>
 
           {/* Footer / caption */}
-          <div className="px-4 py-3 bg-gradient-to-t from-black/90 to-transparent flex flex-col sm:flex-row items-center justify-between gap-2">
-            <div className="text-sm text-muted-foreground truncate max-w-[60%]">
-              {current?.alt ?? ""}
-            </div>
-
-            <div className="flex items-center gap-3">
-              <div className="text-xs text-muted-foreground hidden sm:block">
-                {index + 1} / {images.length}
-              </div>
-
-              {/* Indicators */}
+          <div className="absolute bottom-0 left-0 right-0 px-4 py-3 bg-gradient-to-t from-black/80 to-transparent flex flex-col sm:flex-row items-center justify-between gap-2">
+            <p className="text-sm text-white/90 truncate">
+              {currentImage?.alt || ""}
+            </p>
+            {images.length > 1 && (
               <div className="flex items-center gap-2">
                 {images.map((_, i) => (
                   <button
                     key={i}
                     aria-label={`Ir para imagem ${i + 1}`}
                     onClick={() => setIndex(i)}
-                    className={`w-2 h-2 rounded-full transition-colors ${
-                      i === index ? "bg-primary" : "bg-white/40 hover:bg-white/70"
+                    className={`w-2.5 h-2.5 rounded-full transition-colors ${
+                      i === index ? "bg-white" : "bg-white/40 hover:bg-white/70"
                     }`}
                   />
                 ))}
               </div>
-            </div>
+            )}
           </div>
         </div>
       </DialogContent>
