@@ -1,11 +1,11 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/use-toast";
+import { cn } from "@/lib/utils";
+import { Loader2 } from "lucide-react";
 
 interface Procedure {
   id: string;
@@ -18,7 +18,10 @@ const SelectProcedure = () => {
   const [selectedProcedure, setSelectedProcedure] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
+  const location = useLocation();
   const { toast } = useToast();
+
+  const { imageFile, imagePreview } = location.state || {};
 
   useEffect(() => {
     const fetchData = async () => {
@@ -34,7 +37,7 @@ const SelectProcedure = () => {
         console.error("Error fetching data:", error);
         toast({
           title: "Erro",
-          description: "Não foi possível carregar os dados. Tente novamente.",
+          description: "Não foi possível carregar os procedimentos. Tente novamente.",
           variant: "destructive",
         });
       } finally {
@@ -50,8 +53,34 @@ const SelectProcedure = () => {
       toast({ title: "Atenção", description: "Por favor, selecione um procedimento." });
       return;
     }
-    navigate("/upload-image", {
-      state: { procedureId: selectedProcedure },
+
+    if (!imageFile || !imagePreview) {
+      toast({
+        title: "Erro de Navegação",
+        description: "A imagem do paciente não foi encontrada. Por favor, comece o processo novamente.",
+        variant: "destructive",
+      });
+      navigate("/upload");
+      return;
+    }
+
+    const procedure = procedures.find((p) => p.id === selectedProcedure);
+    if (!procedure) {
+      toast({
+        title: "Erro",
+        description: "O procedimento selecionado é inválido.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    navigate("/processing", {
+      state: {
+        imageFile,
+        imagePreview,
+        procedureId: procedure.id,
+        procedureName: procedure.nome,
+      },
     });
   };
 
@@ -59,27 +88,34 @@ const SelectProcedure = () => {
     <div className="container mx-auto p-4 flex flex-col items-center justify-center min-h-screen">
       <Card className="w-full max-w-2xl">
         <CardHeader>
-          <CardTitle className="text-center text-2xl">Nova Simulação</CardTitle>
+          <CardTitle className="text-center text-2xl">Selecione o Procedimento</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="flex justify-center">
-            {/* Procedure Selection */}
-            <div className="w-full">
-              <h3 className="text-lg font-semibold text-center mb-4">Procedimento</h3>
-              {loading ? (
-                <p className="text-center">Carregando...</p>
-              ) : (
-                <RadioGroup onValueChange={setSelectedProcedure} value={selectedProcedure || ""}>
-                  {procedures.map((proc) => (
-                    <div key={proc.id} className="flex items-center space-x-2">
-                      <RadioGroupItem value={proc.id} id={proc.id} />
-                      <Label htmlFor={proc.id}>{proc.nome}</Label>
-                    </div>
-                  ))}
-                </RadioGroup>
-              )}
+          {loading ? (
+            <div className="flex justify-center items-center h-40">
+              <Loader2 className="h-8 w-8 animate-spin" />
             </div>
-          </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {procedures.map((proc) => (
+                <div
+                  key={proc.id}
+                  onClick={() => setSelectedProcedure(proc.id)}
+                  className={cn(
+                    "p-4 border rounded-lg cursor-pointer transition-all text-center",
+                    selectedProcedure === proc.id
+                      ? "border-primary ring-2 ring-primary bg-primary/10"
+                      : "hover:border-primary/50 hover:bg-muted"
+                  )}
+                >
+                  <h4 className="font-semibold text-lg">{proc.nome}</h4>
+                  {proc.descricao && (
+                    <p className="text-sm text-muted-foreground mt-1">{proc.descricao}</p>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
 
           <div className="mt-8 flex justify-center">
             <Button onClick={handleNext} disabled={!selectedProcedure || loading}>
