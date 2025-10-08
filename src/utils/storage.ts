@@ -49,13 +49,9 @@ export const uploadBase64Image = async (
     }
 
     // First try to get a public URL
-    const { data: publicData, error: publicError } = supabase.storage
+    const { data: publicData } = supabase.storage
       .from(bucket)
       .getPublicUrl(filePath);
-
-    if (publicError) {
-      console.warn("getPublicUrl returned an error:", publicError);
-    }
 
     if (publicData && publicData.publicUrl) {
       return publicData.publicUrl;
@@ -111,13 +107,9 @@ export const uploadFile = async (file: File, bucket: string): Promise<string> =>
       throw uploadError;
     }
 
-    const { data: publicData, error: publicError } = supabase.storage
+    const { data: publicData } = supabase.storage
       .from(bucket)
       .getPublicUrl(filePath);
-
-    if (publicError) {
-      console.warn("getPublicUrl returned an error:", publicError);
-    }
 
     if (publicData && publicData.publicUrl) {
       return publicData.publicUrl;
