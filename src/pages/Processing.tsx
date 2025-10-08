@@ -7,7 +7,7 @@ import { showError } from "@/utils/toast";
 const Processing = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { imageFile, imagePreview, procedureName, procedureId } = location.state || {};
+  const { imageFile, imagePreview, procedureName, procedureId, vitaColor } = location.state || {};
 
   // Função para converter um arquivo para base64
   const toBase64 = (file: File): Promise<string> =>
@@ -40,12 +40,17 @@ const Processing = () => {
         const urlWithParams = new URL(webhookUrl);
         urlWithParams.searchParams.append("procedure", procedureName);
 
-        // Envia um JSON com a imagem em base64
+        // Envia um JSON com a imagem e a cor
+        const payload: { imageData: string; vitacor?: string } = {
+          imageData: base64Image,
+        };
+        if (vitaColor) {
+          payload.vitacor = vitaColor;
+        }
+
         const response = await axios.post(
           urlWithParams.toString(),
-          {
-            imageData: base64Image,
-          },
+          payload,
           {
             headers: {
               "Content-Type": "application/json",
@@ -132,7 +137,7 @@ const Processing = () => {
     };
 
     processImage();
-  }, [imageFile, procedureName, imagePreview, navigate, procedureId]);
+  }, [imageFile, procedureName, imagePreview, navigate, procedureId, vitaColor]);
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-background p-4">
