@@ -14,6 +14,7 @@ interface ImageCarouselDialogProps {
   onOpenChange: (open: boolean) => void;
   images: ImageItem[];
   startIndex?: number;
+  bucket: string;
 }
 
 const ImageCarouselDialog: React.FC<ImageCarouselDialogProps> = ({
@@ -21,6 +22,7 @@ const ImageCarouselDialog: React.FC<ImageCarouselDialogProps> = ({
   onOpenChange,
   images,
   startIndex = 0,
+  bucket,
 }) => {
   const [index, setIndex] = useState(startIndex);
   const [signedSrc, setSignedSrc] = useState<string | null>(null);
@@ -46,13 +48,12 @@ const ImageCarouselDialog: React.FC<ImageCarouselDialogProps> = ({
     const getSignedUrl = async () => {
       try {
         const urlObject = new URL(currentImage.src);
-        const pathParts = urlObject.pathname.split('/');
-        const bucket = pathParts[3];
-        const path = pathParts.slice(4).join('/');
-
-        if (!bucket || !path) {
-          throw new Error("Could not parse bucket and path from URL");
+        const pathParts = urlObject.pathname.split(`/${bucket}/`);
+        
+        if (pathParts.length < 2) {
+          throw new Error(`Could not extract path from URL for bucket '${bucket}'`);
         }
+        const path = pathParts[1];
 
         const { data, error } = await supabase.storage
           .from(bucket)
@@ -67,6 +68,9 @@ const ImageCarouselDialog: React.FC<ImageCarouselDialogProps> = ({
         console.error('Error creating signed URL for carousel:', error);
         if (isMounted) {
           setHasError(true);
+        }
+      } finally {
+        if (isMounted) {
           setIsLoading(false);
         }
       }
@@ -77,7 +81,7 @@ const ImageCarouselDialog: React.FC<ImageCarouselDialogProps> = ({
     return () => {
       isMounted = false;
     };
-  }, [index, currentImage, open]);
+  }, [index, currentImage, open, bucket]);
 
   const handlePrev = useCallback(() => {
     setIndex((i) => (i <= 0 ? images.length - 1 : i - 1));

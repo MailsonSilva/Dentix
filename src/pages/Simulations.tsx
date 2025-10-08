@@ -252,6 +252,7 @@ const Simulations = () => {
         onOpenChange={setIsGalleryOpen}
         images={galleryImages}
         startIndex={galleryStartIndex}
+        bucket="simulacoes"
       />
     </>
   );
