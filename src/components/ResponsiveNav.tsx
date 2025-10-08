@@ -33,8 +33,11 @@ const ResponsiveNav = () => {
                 key={item.href}
                 to={item.href}
                 className={cn(
-                  "flex flex-col items-center justify-center gap-1 text-muted-foreground w-full h-full transition-colors",
-                  isActive ? "text-primary" : "hover:text-foreground"
+                  "flex flex-col items-center justify-center gap-1 text-muted-foreground w-full h-full transition-colors px-2",
+                  // Active: use brand primary colors; Hover: lighter primary
+                  isActive
+                    ? "text-primary bg-primary/10" // active text and subtle bg
+                    : "hover:bg-primary/10 hover:text-primary"
                 )}
               >
                 <item.icon className="h-6 w-6" />
@@ -58,11 +61,17 @@ const ResponsiveNav = () => {
             return (
               <Button
                 key={item.href}
-                variant={isActive ? "secondary" : "ghost"}
-                className="justify-start"
+                variant="ghost"
+                className={cn(
+                  "justify-start w-full text-left",
+                  // Active uses brand primary background and foreground; hover uses lighter primary
+                  isActive
+                    ? "bg-primary text-primary-foreground hover:bg-primary"
+                    : "hover:bg-primary/10 hover:text-primary"
+                )}
                 asChild
               >
-                <Link to={item.href}>
+                <Link to={item.href} className="w-full flex items-center">
                   <item.icon className="mr-2 h-5 w-5" />
                   {item.label}
                 </Link>
@@ -71,7 +80,11 @@ const ResponsiveNav = () => {
           })}
         </div>
         <div>
-          <Button variant="ghost" className="w-full justify-start" onClick={handleLogout}>
+          <Button
+            variant="ghost"
+            className="w-full justify-start hover:bg-primary/10 hover:text-primary"
+            onClick={handleLogout}
+          >
             <LogOut className="mr-2 h-5 w-5" />
             Sair
           </Button>
