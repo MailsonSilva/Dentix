@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { X, ChevronLeft, ChevronRight, ExternalLink } from "lucide-react";
+import { X, ChevronLeft, ChevronRight } from "lucide-react";
 
 interface ImageItem {
   src: string;
@@ -24,12 +24,15 @@ const ImageCarouselDialog: React.FC<ImageCarouselDialogProps> = ({
   const [index, setIndex] = useState<number>(Math.max(0, startIndex));
   const [loaded, setLoaded] = useState(false);
   const [errored, setErrored] = useState(false);
+  const [fetchedSrc, setFetchedSrc] = useState<string | null>(null);
+  const [isFetching, setIsFetching] = useState(false);
 
   useEffect(() => {
     if (open) {
       setIndex(Math.min(Math.max(0, startIndex), Math.max(0, images.length - 1)));
       setLoaded(false);
       setErrored(false);
+      setFetchedSrc(null);
     }
   }, [open, startIndex, images.length]);
 
@@ -37,7 +40,17 @@ const ImageCarouselDialog: React.FC<ImageCarouselDialogProps> = ({
     // reset load/error state when switching images
     setLoaded(false);
     setErrored(false);
+    setFetchedSrc(null);
   }, [index]);
+
+  // Clean up object URL when component unmounts or when fetchedSrc changes
+  useEffect(() => {
+    return () => {
+      if (fetchedSrc) {
+        URL.revokeObjectURL(fetchedSrc);
+      }
+    };
+  }, [fetchedSrc]);
 
   const prev = useCallback(() => {
     setIndex((i) => (i <= 0 ? images.length - 1 : i - 1));
@@ -69,6 +82,36 @@ const ImageCarouselDialog: React.FC<ImageCarouselDialogProps> = ({
   if (!open) return null;
 
   const current = images[index];
+
+  // Attempt to fetch the image as a blob and show it via an object URL (so it opens inside the dialog)
+  const fetchStoredImage = () => {
+    if (!current?.src) {
+      setErrored(true);
+      return;
+    }
+
+    setIsFetching(true);
+    // fetch the resource and convert to blob
+    fetch(current.src)
+      .then((res) => {
+        if (!res.ok) throw new Error("Network response was not ok");
+        return res.blob();
+      })
+      .then((blob) => {
+        // revoke previous if exists
+        if (fetchedSrc) URL.revokeObjectURL(fetchedSrc);
+        const url = URL.createObjectURL(blob);
+        setFetchedSrc(url);
+        setErrored(false);
+        setLoaded(true); // mark as loaded to show the image
+      })
+      .catch(() => {
+        setErrored(true);
+      })
+      .finally(() => {
+        setIsFetching(false);
+      });
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -112,45 +155,59 @@ const ImageCarouselDialog: React.FC<ImageCarouselDialogProps> = ({
             {current ? (
               <div className="relative flex items-center justify-center w-full">
                 {/* Spinner while loading */}
-                {!loaded && !errored && (
+                {!loaded && !errored && !isFetching && (
                   <div className="absolute flex flex-col items-center gap-2">
                     <div className="w-12 h-12 border-4 border-white/20 border-t-white rounded-full animate-spin" />
                     <div className="text-sm text-white/80">Carregando imagem…</div>
                   </div>
                 )}
 
-                {/* Image itself */}
+                {/* If we fetched a blob, use it; otherwise use the original src */}
                 <img
-                  src={current.src}
+                  src={fetchedSrc ?? current.src}
                   alt={current.alt || `Imagem ${index + 1}`}
                   onLoad={() => setLoaded(true)}
-                  onError={() => setErrored(true)}
+                  onError={() => {
+                    // If loading failed from direct src, set errored so user can request fetch
+                    setErrored(true);
+                    setLoaded(false);
+                  }}
                   className={`mx-auto max-h-[80vh] max-w-[96vw] object-contain transition-opacity duration-300 ${
                     loaded ? "opacity-100" : "opacity-0"
                   }`}
                   loading="lazy"
                 />
 
-                {/* Error fallback */}
+                {/* Error fallback: Try to load the stored (uploaded) image inside the dialog */}
                 {errored && (
                   <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 p-4">
                     <div className="text-center">
-                      <div className="text-lg font-semibold">Não foi possível carregar a imagem</div>
+                      <div className="text-lg font-semibold">Não foi possível carregar a imagem diretamente</div>
                       <div className="text-sm text-white/80 mt-1">{current.alt}</div>
                     </div>
 
                     <div className="flex gap-2">
-                      <a
-                        href={current.src}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="inline-flex items-center gap-2 px-3 py-2 rounded-md bg-white text-black hover:opacity-90"
+                      <Button
+                        onClick={fetchStoredImage}
+                        disabled={isFetching}
+                        className="px-3 py-2"
                       >
-                        Abrir em nova aba
-                        <ExternalLink className="h-4 w-4" />
-                      </a>
+                        {isFetching ? "Carregando..." : "Abrir imagem carregada"}
+                      </Button>
 
-                      <Button variant="ghost" onClick={() => setErrored(false)}>
+                      <Button
+                        variant="ghost"
+                        onClick={() => {
+                          // reset and try to reload the original src by toggling loaded state
+                          setErrored(false);
+                          setLoaded(false);
+                          // forcing a reload can be achieved by setting fetchedSrc to null and letting img try current.src again
+                          if (fetchedSrc) {
+                            URL.revokeObjectURL(fetchedSrc);
+                            setFetchedSrc(null);
+                          }
+                        }}
+                      >
                         Tentar novamente
                       </Button>
                     </div>
