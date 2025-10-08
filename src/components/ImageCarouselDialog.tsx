@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { X, ChevronLeft, ChevronRight } from "lucide-react";
+import { X, ChevronLeft, ChevronRight, ExternalLink } from "lucide-react";
 
 interface ImageItem {
   src: string;
@@ -22,12 +22,22 @@ const ImageCarouselDialog: React.FC<ImageCarouselDialogProps> = ({
   startIndex = 0,
 }) => {
   const [index, setIndex] = useState<number>(Math.max(0, startIndex));
+  const [loaded, setLoaded] = useState(false);
+  const [errored, setErrored] = useState(false);
 
   useEffect(() => {
     if (open) {
       setIndex(Math.min(Math.max(0, startIndex), Math.max(0, images.length - 1)));
+      setLoaded(false);
+      setErrored(false);
     }
   }, [open, startIndex, images.length]);
+
+  useEffect(() => {
+    // reset load/error state when switching images
+    setLoaded(false);
+    setErrored(false);
+  }, [index]);
 
   const prev = useCallback(() => {
     setIndex((i) => (i <= 0 ? images.length - 1 : i - 1));
@@ -62,8 +72,8 @@ const ImageCarouselDialog: React.FC<ImageCarouselDialogProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl w-full p-0">
-        <div className="relative bg-black/90 text-white rounded-md overflow-hidden">
+      <DialogContent className="max-w-5xl w-full p-0">
+        <div className="relative bg-black/95 text-white rounded-md overflow-hidden">
           {/* Header with close */}
           <div className="absolute top-3 right-3 z-20 flex gap-2">
             <Button
@@ -98,24 +108,63 @@ const ImageCarouselDialog: React.FC<ImageCarouselDialogProps> = ({
           </div>
 
           {/* Image area */}
-          <div className="flex items-center justify-center min-h-[60vh] bg-black">
+          <div className="w-full flex items-center justify-center min-h-[60vh] bg-black p-4">
             {current ? (
-              // make image responsive and centered
-              <img
-                src={current.src}
-                alt={current.alt || `Imagem ${index + 1}`}
-                className="max-h-[80vh] max-w-full object-contain"
-              />
-            ) : (
-              <div className="p-8 text-center text-sm text-muted-foreground">
-                Imagem indisponível
+              <div className="relative flex items-center justify-center w-full">
+                {/* Spinner while loading */}
+                {!loaded && !errored && (
+                  <div className="absolute flex flex-col items-center gap-2">
+                    <div className="w-12 h-12 border-4 border-white/20 border-t-white rounded-full animate-spin" />
+                    <div className="text-sm text-white/80">Carregando imagem…</div>
+                  </div>
+                )}
+
+                {/* Image itself */}
+                <img
+                  src={current.src}
+                  alt={current.alt || `Imagem ${index + 1}`}
+                  onLoad={() => setLoaded(true)}
+                  onError={() => setErrored(true)}
+                  className={`mx-auto max-h-[80vh] max-w-[96vw] object-contain transition-opacity duration-300 ${
+                    loaded ? "opacity-100" : "opacity-0"
+                  }`}
+                  loading="lazy"
+                />
+
+                {/* Error fallback */}
+                {errored && (
+                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 p-4">
+                    <div className="text-center">
+                      <div className="text-lg font-semibold">Não foi possível carregar a imagem</div>
+                      <div className="text-sm text-white/80 mt-1">{current.alt}</div>
+                    </div>
+
+                    <div className="flex gap-2">
+                      <a
+                        href={current.src}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-2 px-3 py-2 rounded-md bg-white text-black hover:opacity-90"
+                      >
+                        Abrir em nova aba
+                        <ExternalLink className="h-4 w-4" />
+                      </a>
+
+                      <Button variant="ghost" onClick={() => setErrored(false)}>
+                        Tentar novamente
+                      </Button>
+                    </div>
+                  </div>
+                )}
               </div>
+            ) : (
+              <div className="p-8 text-center text-sm text-muted-foreground">Imagem indisponível</div>
             )}
           </div>
 
           {/* Footer / caption */}
           <div className="px-4 py-3 bg-gradient-to-t from-black/90 to-transparent flex flex-col sm:flex-row items-center justify-between gap-2">
-            <div className="text-sm text-muted-foreground">
+            <div className="text-sm text-muted-foreground truncate max-w-[60%]">
               {current?.alt ?? ""}
             </div>
 
@@ -125,7 +174,7 @@ const ImageCarouselDialog: React.FC<ImageCarouselDialogProps> = ({
               </div>
 
               {/* Indicators */}
-              <div className="flex items-center gap-1">
+              <div className="flex items-center gap-2">
                 {images.map((_, i) => (
                   <button
                     key={i}
