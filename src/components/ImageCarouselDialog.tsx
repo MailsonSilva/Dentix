@@ -14,7 +14,7 @@ interface ImageCarouselDialogProps {
   onOpenChange: (open: boolean) => void;
   images: ImageItem[];
   startIndex?: number;
-  bucket: string;
+  bucket?: string; // Bucket is now optional
 }
 
 const ImageCarouselDialog: React.FC<ImageCarouselDialogProps> = ({
@@ -45,11 +45,29 @@ const ImageCarouselDialog: React.FC<ImageCarouselDialogProps> = ({
     setHasError(false);
     setSignedSrc(null);
 
+    // Handle base64 images directly
+    if (currentImage.src.startsWith("data:")) {
+      if (isMounted) {
+        setSignedSrc(currentImage.src);
+        setIsLoading(false);
+      }
+      return; // Exit early
+    }
+
+    // Handle Supabase URLs
     const getSignedUrl = async () => {
+      if (!bucket) {
+        console.error("Bucket prop is required for Supabase URLs in ImageCarouselDialog");
+        if (isMounted) {
+          setHasError(true);
+          setIsLoading(false);
+        }
+        return;
+      }
       try {
         const urlObject = new URL(currentImage.src);
         const pathParts = urlObject.pathname.split(`/${bucket}/`);
-        
+
         if (pathParts.length < 2) {
           throw new Error(`Could not extract path from URL for bucket '${bucket}'`);
         }
@@ -65,7 +83,7 @@ const ImageCarouselDialog: React.FC<ImageCarouselDialogProps> = ({
           setSignedSrc(data.signedUrl);
         }
       } catch (error) {
-        console.error('Error creating signed URL for carousel:', error);
+        console.error("Error creating signed URL for carousel:", error);
         if (isMounted) {
           setHasError(true);
         }
