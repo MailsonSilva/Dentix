@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button";
 import { Trash2, Search } from "lucide-react";
 import { DeleteSimulationDialog } from "@/components/DeleteSimulationDialog";
 import { Input } from "@/components/ui/input";
+import ImageCarouselDialog from "@/components/ImageCarouselDialog";
 
 interface Simulation {
   id: string;
@@ -36,6 +37,11 @@ const Simulations = () => {
 
   // Search state
   const [query, setQuery] = useState("");
+
+  // Gallery state
+  const [isGalleryOpen, setIsGalleryOpen] = useState(false);
+  const [galleryImages, setGalleryImages] = useState<{ src: string; alt: string }[]>([]);
+  const [galleryStartIndex, setGalleryStartIndex] = useState(0);
 
   useEffect(() => {
     const fetchSimulations = async () => {
@@ -123,6 +129,23 @@ const Simulations = () => {
     }
   };
 
+  // Open gallery helper: builds images array and sets start index
+  const openGallery = (sim: Simulation, initial: "original" | "simulated") => {
+    const images: { src: string; alt: string }[] = [];
+    if (sim.imagem_original_url) {
+      images.push({ src: sim.imagem_original_url, alt: `Antes — ${sim.nome_paciente || ""}` });
+    }
+    if (sim.imagem_simulada_url) {
+      images.push({ src: sim.imagem_simulada_url, alt: `Depois — ${sim.nome_paciente || ""}` });
+    }
+    if (images.length === 0) return;
+
+    const startIndex = initial === "simulated" ? Math.min(1, images.length - 1) : 0;
+    setGalleryImages(images);
+    setGalleryStartIndex(startIndex);
+    setIsGalleryOpen(true);
+  };
+
   return (
     <>
       <div className="container py-8">
@@ -188,7 +211,8 @@ const Simulations = () => {
                       bucket="simulacoes"
                       url={sim.imagem_original_url}
                       alt="Original"
-                      className="rounded-md aspect-square object-cover"
+                      className="rounded-md aspect-square object-cover cursor-pointer hover:opacity-90 transition"
+                      onClick={() => openGallery(sim, "original")}
                     />
                   </div>
                   <div>
@@ -197,7 +221,8 @@ const Simulations = () => {
                       bucket="simulacoes"
                       url={sim.imagem_simulada_url}
                       alt="Simulada"
-                      className="rounded-md aspect-square object-cover"
+                      className="rounded-md aspect-square object-cover cursor-pointer hover:opacity-90 transition"
+                      onClick={() => openGallery(sim, "simulated")}
                     />
                   </div>
                 </CardContent>
@@ -220,6 +245,13 @@ const Simulations = () => {
         onOpenChange={setIsDeleteDialogOpen}
         onConfirm={handleConfirmDelete}
         loading={deleting}
+      />
+
+      <ImageCarouselDialog
+        open={isGalleryOpen}
+        onOpenChange={setIsGalleryOpen}
+        images={galleryImages}
+        startIndex={galleryStartIndex}
       />
     </>
   );
