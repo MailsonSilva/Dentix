@@ -1,127 +1,122 @@
+import { useState, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { UploadCloud, Image as ImageIcon, Camera, ArrowLeft } from "lucide-react";
-import { useState, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
-import { CameraFullScreen } from "@/components/CameraFullScreen";
+import { useToast } from "@/components/ui/use-toast";
+import { Camera, GalleryHorizontal, Image as ImageIcon, X } from "lucide-react";
 
 const Upload = () => {
-  const navigate = useNavigate();
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [imageFile, setImageFile] = useState<File | null>(null);
-  const [isCameraOpen, setIsCameraOpen] = useState(false);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+  const navigate = useNavigate();
+  const { toast } = useToast();
 
-  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      updateImageState(file);
-    }
-    // Limpa o valor do input para permitir selecionar o mesmo arquivo novamente
-    event.target.value = "";
-  };
-
-  const handleCapture = (file: File) => {
-    if (file) {
-      updateImageState(file);
+      setImageFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
     }
   };
 
-  const updateImageState = (file: File) => {
-    setImageFile(file);
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      setImagePreview(reader.result as string);
-    };
-    reader.readAsDataURL(file);
+  const handleTakePhoto = () => {
+    cameraInputRef.current?.click();
+  };
+
+  const handleRemoveImage = () => {
+    setImageFile(null);
+    setImagePreview(null);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+    if (cameraInputRef.current) cameraInputRef.current.value = "";
   };
 
   const handleNext = () => {
-    if (imageFile && imagePreview) {
-      navigate("/select-procedure", {
-        state: { imageFile, imagePreview },
+    if (!imageFile || !imagePreview) {
+      toast({
+        title: "Atenção",
+        description: "Por favor, selecione uma imagem para continuar.",
+        variant: "default",
       });
+      return;
     }
+    navigate("/select-procedure", { state: { imageFile, imagePreview } });
   };
 
-  const handleCloseCamera = useCallback(() => {
-    setIsCameraOpen(false);
-  }, []);
-
   return (
-    <>
-      <div className="p-4 relative">
-        <Button variant="ghost" size="icon" onClick={() => navigate(-1)} className="absolute top-4 left-4 z-10 md:hidden">
-          <ArrowLeft className="h-6 w-6" />
-        </Button>
-        <div className="flex items-center justify-center">
-          <Card className="w-full max-w-md mt-12 md:mt-0">
-            <CardHeader className="text-center space-y-4">
-              <img src="/logo.png" alt="Dentix Logo" className="w-40 mx-auto" />
-              <CardTitle className="text-2xl">
-                Envie a foto do paciente
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex flex-col items-center gap-6">
-                {imagePreview ? (
-                  <div className="w-full flex justify-center">
-                    <img
-                      src={imagePreview}
-                      alt="Pré-visualização"
-                      className="rounded-lg w-auto max-w-full h-auto"
-                      style={{ maxHeight: "400px" }}
-                    />
-                  </div>
-                ) : (
-                  <div className="w-full h-64 border-2 border-dashed rounded-lg flex flex-col items-center justify-center text-muted-foreground">
-                    <ImageIcon className="w-16 h-16 mb-2" />
-                    <span>Pré-visualização da foto</span>
-                  </div>
-                )}
-                <div className="flex flex-col gap-4 w-full">
-                  <Button
-                    variant="outline"
-                    className="w-full"
-                    onClick={() =>
-                      document.getElementById("galleryInput")?.click()}
-                  >
-                    <UploadCloud className="mr-2 h-4 w-4" />
-                    Escolher da galeria
-                  </Button>
-                  <input
-                    type="file"
-                    id="galleryInput"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={handleFileSelect}
+    <div className="container mx-auto p-4 flex flex-col items-center justify-center min-h-screen">
+      <Card className="w-full max-w-md">
+        <CardHeader>
+          <CardTitle className="text-center text-2xl">Carregar Imagem do Paciente</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-col items-center gap-6">
+            <div className="relative w-full aspect-square border-2 border-dashed rounded-lg flex flex-col items-center justify-center text-muted-foreground p-4">
+              {imagePreview ? (
+                <>
+                  <img
+                    src={imagePreview}
+                    alt="Pré-visualização"
+                    className="object-contain h-full w-full rounded-lg"
                   />
                   <Button
-                    variant="outline"
-                    className="w-full"
-                    onClick={() => setIsCameraOpen(true)}
+                    variant="destructive"
+                    size="icon"
+                    className="absolute top-2 right-2 h-8 w-8 rounded-full"
+                    onClick={handleRemoveImage}
                   >
-                    <Camera className="mr-2 h-4 w-4" />
-                    Tirar Foto
+                    <X className="h-4 w-4" />
                   </Button>
-                  <Button
-                    className="w-full"
-                    disabled={!imagePreview}
-                    onClick={handleNext}
-                  >
-                    Avançar
-                  </Button>
+                </>
+              ) : (
+                <div className="text-center space-y-4">
+                  <ImageIcon className="mx-auto h-12 w-12" />
+                  <p>Selecione uma imagem para a simulação</p>
+                  <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                    <Button onClick={() => fileInputRef.current?.click()}>
+                      <GalleryHorizontal className="mr-2 h-4 w-4" />
+                      Escolher da Galeria
+                    </Button>
+                    <Button onClick={handleTakePhoto}>
+                      <Camera className="mr-2 h-4 w-4" />
+                      Tirar Foto
+                    </Button>
+                  </div>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-      <CameraFullScreen
-        open={isCameraOpen}
-        onClose={handleCloseCamera}
-        onCapture={handleCapture}
-      />
-    </>
+              )}
+            </div>
+
+            <input
+              id="file-upload"
+              type="file"
+              ref={fileInputRef}
+              onChange={handleFileChange}
+              className="hidden"
+              accept="image/*"
+            />
+            <input
+              type="file"
+              ref={cameraInputRef}
+              onChange={handleFileChange}
+              className="hidden"
+              accept="image/*"
+              capture="environment"
+            />
+          </div>
+
+          <div className="mt-8 flex justify-center">
+            <Button onClick={handleNext} disabled={!imagePreview} className="w-full sm:w-auto">
+              Avançar
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
   );
 };
 
