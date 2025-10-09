@@ -14,11 +14,20 @@ interface Profile {
   atualizado_em: string | null;
 }
 
+// Define um tipo para as cores Vita
+interface VitaColor {
+  id: string;
+  nome: string;
+  hexadecimal: string;
+}
+
 interface AuthContextType {
   session: Session | null;
   user: User | null;
   profile: Profile | null;
   loading: boolean;
+  vitaColors: VitaColor[];
+  loadingVitaColors: boolean;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -26,6 +35,8 @@ const AuthContext = createContext<AuthContextType>({
   user: null,
   profile: null,
   loading: true,
+  vitaColors: [],
+  loadingVitaColors: true,
 });
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
@@ -33,6 +44,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [vitaColors, setVitaColors] = useState<VitaColor[]>([]);
+  const [loadingVitaColors, setLoadingVitaColors] = useState(true);
 
   useEffect(() => {
     let isMounted = true;
@@ -61,8 +74,31 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       }
     };
 
-    // Initialize: get current session immediately
+    const fetchVitaColors = async () => {
+      if (!isMounted) return;
+      setLoadingVitaColors(true);
+      try {
+        const { data, error } = await supabase
+          .from('cores_vita')
+          .select('id, nome, hexadecimal')
+          .eq('ativo', true)
+          .order('nome');
+
+        if (error) throw error;
+        if (isMounted) setVitaColors(data || []);
+      } catch (error) {
+        console.error("Error fetching vita colors in context:", error);
+        if (isMounted) setVitaColors([]);
+      } finally {
+        if (isMounted) setLoadingVitaColors(false);
+      }
+    };
+
+    // Initialize: get current session and other data
     const init = async () => {
+      // Fetch colors as soon as the provider mounts
+      fetchVitaColors();
+
       try {
         const {
           data: { session: initialSession },
@@ -127,6 +163,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     user,
     profile,
     loading,
+    vitaColors,
+    loadingVitaColors,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

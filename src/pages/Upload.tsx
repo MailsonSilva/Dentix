@@ -1,4 +1,4 @@
-import { useState, useRef, DragEvent, useEffect } from "react";
+import { useState, useRef, DragEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,13 +12,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { supabase } from "@/integrations/supabase/client";
-
-interface VitaColor {
-  id: string;
-  nome: string;
-  hexadecimal: string;
-}
+import { useAuth } from "@/contexts/AuthContext";
 
 const Upload = () => {
   const [imageFile, setImageFile] = useState<File | null>(null);
@@ -30,36 +24,8 @@ const Upload = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  const [vitaColors, setVitaColors] = useState<VitaColor[]>([]);
-  const [loadingColors, setLoadingColors] = useState(true);
+  const { vitaColors, loadingVitaColors } = useAuth();
   const [selectedVitaColor, setSelectedVitaColor] = useState<string | null>(null);
-
-  useEffect(() => {
-    const fetchVitaColors = async () => {
-      setLoadingColors(true);
-      try {
-        const { data, error } = await supabase
-          .from('cores_vita')
-          .select('id, nome, hexadecimal')
-          .eq('ativo', true)
-          .order('nome');
-
-        if (error) throw error;
-        setVitaColors(data || []);
-      } catch (error) {
-        console.error("Error fetching vita colors:", error);
-        toast({
-          title: "Erro ao carregar cores",
-          description: "Não foi possível buscar as cores Vita.",
-          variant: "destructive",
-        });
-      } finally {
-        setLoadingColors(false);
-      }
-    };
-
-    fetchVitaColors();
-  }, [toast]);
 
   const processFile = (file: File | null | undefined) => {
     if (file && file.type.startsWith("image/")) {
@@ -172,7 +138,7 @@ const Upload = () => {
               {imagePreview && (
                 <div className="w-full space-y-3">
                   <h3 className="text-center font-semibold text-muted-foreground">Selecione a Cor Vita</h3>
-                  {loadingColors ? (
+                  {loadingVitaColors ? (
                     <div className="flex justify-center items-center h-24">
                       <Loader2 className="h-6 w-6 animate-spin" />
                     </div>
