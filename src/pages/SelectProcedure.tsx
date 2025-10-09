@@ -11,6 +11,7 @@ interface Procedure {
   id: string;
   nome: string;
   descricao: string;
+  webhook_valor: string | null;
 }
 
 const SelectProcedure = () => {
@@ -74,12 +75,14 @@ const SelectProcedure = () => {
       return;
     }
 
+    const procedureValueForWebhook = procedure.webhook_valor || procedure.nome;
+
     navigate("/processing", {
       state: {
         imageFile,
         imagePreview,
         procedureId: procedure.id,
-        procedureName: procedure.nome,
+        procedureName: procedureValueForWebhook,
         vitaColor: vitaColor,
       },
     });
