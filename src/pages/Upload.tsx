@@ -1,32 +1,52 @@
-import { useState, useRef } from "react";
+import { useState, useRef, DragEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/components/ui/use-toast";
-import { Camera, GalleryHorizontal, Image as ImageIcon, X } from "lucide-react";
+import { Camera, GalleryHorizontal, UploadCloud, X } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 const Upload = () => {
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
+  const processFile = (file: File | null | undefined) => {
+    if (file && file.type.startsWith("image/")) {
       setImageFile(file);
       const reader = new FileReader();
       reader.onloadend = () => {
         setImagePreview(reader.result as string);
       };
       reader.readAsDataURL(file);
+    } else if (file) {
+      toast({
+        title: "Arquivo inválido",
+        description: "Por favor, selecione um arquivo de imagem válido.",
+        variant: "destructive",
+      });
     }
   };
 
-  const handleTakePhoto = () => {
-    cameraInputRef.current?.click();
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    processFile(event.target.files?.[0]);
+  };
+
+  const handleDrop = (event: DragEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    event.stopPropagation();
+    setIsDragging(false);
+    processFile(event.dataTransfer.files?.[0]);
+  };
+
+  const handleDragEvents = (event: DragEvent<HTMLDivElement>, dragging: boolean) => {
+    event.preventDefault();
+    event.stopPropagation();
+    setIsDragging(dragging);
   };
 
   const handleRemoveImage = () => {
@@ -41,7 +61,6 @@ const Upload = () => {
       toast({
         title: "Atenção",
         description: "Por favor, selecione uma imagem para continuar.",
-        variant: "default",
       });
       return;
     }
@@ -52,47 +71,67 @@ const Upload = () => {
     <div className="container mx-auto p-4 flex flex-col items-center justify-center min-h-screen">
       <Card className="w-full max-w-md">
         <CardHeader>
-          <CardTitle className="text-center text-2xl">Carregar Imagem do Paciente</CardTitle>
+          <CardTitle className="text-center text-2xl font-bold tracking-tight">
+            Nova Simulação
+          </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="flex flex-col items-center gap-6">
-            <div className="relative w-full aspect-square border-2 border-dashed rounded-lg flex flex-col items-center justify-center text-muted-foreground p-4">
-              {imagePreview ? (
-                <>
-                  <img
-                    src={imagePreview}
-                    alt="Pré-visualização"
-                    className="object-contain h-full w-full rounded-lg"
-                  />
-                  <Button
-                    variant="destructive"
-                    size="icon"
-                    className="absolute top-2 right-2 h-8 w-8 rounded-full"
-                    onClick={handleRemoveImage}
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                </>
-              ) : (
-                <div className="text-center space-y-4">
-                  <ImageIcon className="mx-auto h-12 w-12" />
-                  <p>Selecione uma imagem para a simulação</p>
-                  <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                    <Button onClick={() => fileInputRef.current?.click()}>
-                      <GalleryHorizontal className="mr-2 h-4 w-4" />
-                      Escolher da Galeria
-                    </Button>
-                    <Button onClick={handleTakePhoto}>
-                      <Camera className="mr-2 h-4 w-4" />
-                      Tirar Foto
-                    </Button>
-                  </div>
+            {imagePreview ? (
+              <div className="relative w-full aspect-square">
+                <img
+                  src={imagePreview}
+                  alt="Pré-visualização"
+                  className="object-contain h-full w-full rounded-lg"
+                />
+                <Button
+                  variant="destructive"
+                  size="icon"
+                  className="absolute top-2 right-2 h-8 w-8 rounded-full shadow-md"
+                  onClick={handleRemoveImage}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            ) : (
+              <div
+                onDrop={handleDrop}
+                onDragOver={(e) => handleDragEvents(e, true)}
+                onDragEnter={(e) => handleDragEvents(e, true)}
+                onDragLeave={(e) => handleDragEvents(e, false)}
+                onClick={() => fileInputRef.current?.click()}
+                className={cn(
+                  "relative w-full aspect-square border-2 border-dashed rounded-lg flex flex-col items-center justify-center text-center text-muted-foreground p-4 transition-colors duration-200 ease-in-out cursor-pointer",
+                  isDragging ? "border-primary bg-primary/10" : "bg-muted/25 hover:bg-muted/50"
+                )}
+              >
+                <div className="space-y-2">
+                  <UploadCloud className="mx-auto h-12 w-12" />
+                  <p className="font-semibold">Arraste e solte a imagem aqui</p>
+                  <p className="text-xs">ou clique para selecionar</p>
                 </div>
-              )}
-            </div>
+                <div className="mt-6 flex flex-col sm:flex-row gap-2 w-full justify-center">
+                   <Button
+                    onClick={(e) => { e.stopPropagation(); fileInputRef.current?.click(); }}
+                    variant="secondary"
+                    className="flex-1"
+                  >
+                    <GalleryHorizontal className="mr-2 h-4 w-4" />
+                    Da Galeria
+                  </Button>
+                  <Button
+                    onClick={(e) => { e.stopPropagation(); cameraInputRef.current?.click(); }}
+                    variant="secondary"
+                    className="flex-1"
+                  >
+                    <Camera className="mr-2 h-4 w-4" />
+                    Tirar Foto
+                  </Button>
+                </div>
+              </div>
+            )}
 
             <input
-              id="file-upload"
               type="file"
               ref={fileInputRef}
               onChange={handleFileChange}
@@ -110,7 +149,7 @@ const Upload = () => {
           </div>
 
           <div className="mt-8 flex justify-center">
-            <Button onClick={handleNext} disabled={!imagePreview} className="w-full sm:w-auto">
+            <Button onClick={handleNext} disabled={!imagePreview} size="lg" className="w-full sm:w-auto">
               Avançar
             </Button>
           </div>
