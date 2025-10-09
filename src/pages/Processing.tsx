@@ -27,20 +27,18 @@ const Processing = () => {
 
     const processImage = async () => {
       try {
-        // Converte a imagem para base64 antes de enviar
         const base64Image = await toBase64(imageFile);
 
         const webhookUrl = import.meta.env.VITE_N8N_WEBHOOK_URL;
         if (!webhookUrl) {
           throw new Error(
-            "VITE_N8N_WEBHOOK_URL não encontrada. Se estiver rodando localmente, crie um arquivo .env e adicione a variável. Se estiver na Vercel, verifique as Environment Variables no painel do projeto.",
+            "VITE_N8N_WEBHOOK_URL não encontrada. Verifique as variáveis de ambiente.",
           );
         }
 
         const urlWithParams = new URL(webhookUrl);
         urlWithParams.searchParams.append("procedure", procedureName);
 
-        // Envia um JSON com a imagem e a cor
         const payload: { imageData: string; vitacor?: string } = {
           imageData: base64Image,
         };
@@ -52,25 +50,17 @@ const Processing = () => {
           urlWithParams.toString(),
           payload,
           {
-            headers: {
-              "Content-Type": "application/json",
-            },
-            responseType: 'blob', // Important: expect a binary response
-            timeout: 60000, // Aumenta o tempo limite para 60 segundos
+            headers: { "Content-Type": "application/json" },
+            responseType: 'blob',
+            timeout: 60000,
           },
         );
 
-        console.log("--- RESPOSTA RECEBIDA DO N8N ---");
-        console.log(response);
-        console.log("------------------------------------");
-
         const responseBlob = response.data;
-
         if (!(responseBlob instanceof Blob) || responseBlob.size === 0) {
           throw new Error("A resposta do servidor não continha uma imagem válida.");
         }
 
-        // Convert the received Blob into a Data URL to be used in <img> tags
         const simulatedImageUrl = await new Promise<string>((resolve, reject) => {
           const reader = new FileReader();
           reader.onloadend = () => resolve(reader.result as string);
@@ -87,32 +77,29 @@ const Processing = () => {
             },
           });
         } else {
-          console.error("A imagem convertida do blob é inválida ou vazia:", simulatedImageUrl);
-          throw new Error(
-            "A resposta do servidor não pôde ser convertida para uma imagem válida.",
-          );
+          throw new Error("A resposta do servidor não pôde ser convertida para uma imagem válida.");
         }
       } catch (error) {
         console.error("--- ERRO AO PROCESSAR A IMAGEM ---");
-        if (axios.isAxiosError(error)) {
+        if (axios.isAxiosError(error) && error.response) {
           console.error("Mensagem de erro:", error.message);
-          console.error("Status do erro:", error.response?.status);
-          console.error("Dados da resposta:", error.response?.data);
-          if (error.code === "ECONNABORTED") {
-            console.error(
-              "Dica: A requisição demorou demais e foi cancelada (timeout).",
-            );
-            showError(
-              "A simulação demorou mais que o esperado. Tente novamente.",
-            );
-          } else if (error.code === "ERR_NETWORK") {
-            console.error(
-              "Dica: Isso pode ser um problema de CORS no seu servidor n8n ou a URL do webhook está incorreta.",
-            );
-            showError(
-              "Falha na comunicação com o servidor. Verifique o console.",
-            );
+          console.error("Status do erro:", error.response.status);
+
+          // Try to read the blob response as text for better debugging
+          if (error.response.data instanceof Blob) {
+            const errorText = await error.response.data.text();
+            console.error("Dados da resposta (Texto):", errorText);
+            try {
+              // Try to parse as JSON to see if it's a structured error
+              const errorJson = JSON.parse(errorText);
+              console.error("Dados da resposta (JSON):", errorJson);
+              showError(errorJson.message || "Falha na simulação. Verifique o console.");
+            } catch (e) {
+              // If not JSON, it might be plain text or HTML from the server
+              showError("Falha na simulação. Verifique o console para detalhes.");
+            }
           } else {
+            console.error("Dados da resposta:", error.response.data);
             showError("Falha na simulação. Verifique o console para detalhes.");
           }
         } else {
