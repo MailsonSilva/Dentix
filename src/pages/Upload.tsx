@@ -158,7 +158,6 @@ const Upload = () => {
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <Button
-              variant="outline"
               onClick={() => {
                 fileInputRef.current?.click();
                 setSelectionOpen(false);
@@ -168,7 +167,7 @@ const Upload = () => {
               Escolher da Galeria
             </Button>
             <Button
-              variant="outline"
+              variant="secondary"
               onClick={() => {
                 cameraInputRef.current?.click();
                 setSelectionOpen(false);
