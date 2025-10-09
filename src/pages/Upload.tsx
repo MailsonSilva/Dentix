@@ -85,7 +85,18 @@ const Upload = () => {
       });
       return;
     }
-    navigate("/select-procedure", { state: { imageFile, imagePreview, vitaColor: selectedVitaColor } });
+
+    const selectedColorObject = vitaColors.find(color => color.nome === selectedVitaColor);
+    if (!selectedColorObject) {
+      toast({
+        title: "Erro",
+        description: "A cor selecionada é inválida. Tente novamente.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    navigate("/select-procedure", { state: { imageFile, imagePreview, vitaColor: selectedColorObject.hexadecimal } });
   };
 
   return (
