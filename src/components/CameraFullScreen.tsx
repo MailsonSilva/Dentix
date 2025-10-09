@@ -41,7 +41,7 @@ export const CameraFullScreen: React.FC<CameraFullScreenProps> = ({
       try {
         const constraints = {
           video: {
-            facingMode: "environment",
+            facingMode: { ideal: "environment" }, // Prefer back camera, but allow front
             width: { ideal: 1920 },
             height: { ideal: 1080 },
           },
@@ -56,13 +56,17 @@ export const CameraFullScreen: React.FC<CameraFullScreenProps> = ({
 
         const videoTrack = mediaStream.getVideoTracks()[0];
         const capabilities = videoTrack.getCapabilities();
-        // @ts-ignore
+        
+        // @ts-ignore - Check for torch (flash) capability
         setHasFlash(!!capabilities.torch);
-        // @ts-ignore
+        
+        // @ts-ignore - Check for zoom capability
         if (capabilities.zoom) {
           setHasZoom(true);
           // @ts-ignore
-          setZoomRange({ min: capabilities.zoom.min, max: capabilities.zoom.max, step: capabilities.zoom.step });
+          const { min, max, step } = capabilities.zoom;
+          setZoomRange({ min, max, step });
+          setZoomLevel(min); // Start at minimum zoom
         } else {
           setHasZoom(false);
         }
@@ -91,6 +95,7 @@ export const CameraFullScreen: React.FC<CameraFullScreenProps> = ({
     };
   }, [open, capturedImage, startCamera, stopStream]);
 
+  // Effect to apply zoom when slider changes
   useEffect(() => {
     if (streamRef.current && hasZoom && isCameraReady) {
       const videoTrack = streamRef.current.getVideoTracks()[0];
@@ -138,7 +143,7 @@ export const CameraFullScreen: React.FC<CameraFullScreenProps> = ({
 
   const handleRetake = () => {
     setCapturedImage(null);
-    setZoomLevel(1);
+    setZoomLevel(zoomRange.min); // Reset zoom on retake
   };
 
   const handleToggleFlash = async () => {
@@ -183,7 +188,6 @@ export const CameraFullScreen: React.FC<CameraFullScreenProps> = ({
             )}
           </Button>
         )}
-        {/* Spacer to keep close button left-aligned if flash is not available */}
         {!hasFlash && <div className="w-10 h-10" />}
       </div>
 

@@ -17,7 +17,6 @@ export const CameraCapture: React.FC<CameraCaptureProps> = ({ open, onOpenChange
   const [stream, setStream] = useState<MediaStream | null>(null);
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
   const [retakeCounter, setRetakeCounter] = useState(0);
-  // Removido o estado de facingMode
   const [isFlashOn, setIsFlashOn] = useState(false);
   const [hasFlash, setHasFlash] = useState(false);
 
@@ -29,7 +28,7 @@ export const CameraCapture: React.FC<CameraCaptureProps> = ({ open, onOpenChange
         try {
           const constraints = {
             video: {
-              facingMode: "environment", // Força a câmera traseira
+              facingMode: { ideal: "environment" }, // Prefer back camera
               width: { ideal: 1920 },
               height: { ideal: 1080 },
             },
@@ -113,8 +112,6 @@ export const CameraCapture: React.FC<CameraCaptureProps> = ({ open, onOpenChange
     setRetakeCounter(c => c + 1);
   };
 
-  // Removido handleSwitchCamera e estado de facingMode
-
   const handleToggleFlash = async () => {
     if (stream && hasFlash) {
       const videoTrack = stream.getVideoTracks()[0];
@@ -149,7 +146,6 @@ export const CameraCapture: React.FC<CameraCaptureProps> = ({ open, onOpenChange
               <video ref={videoRef} autoPlay playsInline className="h-full w-full object-cover" />
               <FramingGuide />
               <div className="absolute top-2 right-2 flex flex-col gap-2">
-                {/* Removido o botão de alternar câmera */}
                 {hasFlash && (
                   <Button variant="outline" size="icon" onClick={handleToggleFlash}>
                     {isFlashOn ? <ZapOff className="h-5 w-5" /> : <Zap className="h-5 w-5" />}
