@@ -81,7 +81,7 @@ const Upload = () => {
     if (!selectedVitaColor) {
       toast({
         title: "Atenção",
-        description: "Por favor, selecione uma cor Vita para continuar.",
+        description: "Por favor, selecione uma cor para continuar.",
       });
       return;
     }
@@ -137,7 +137,7 @@ const Upload = () => {
 
               {imagePreview && (
                 <div className="w-full space-y-3">
-                  <h3 className="text-center font-semibold text-muted-foreground">Selecione a Cor Vita</h3>
+                  <h3 className="text-center font-semibold text-muted-foreground">Selecione a Cor</h3>
                   {loadingVitaColors ? (
                     <div className="flex justify-center items-center h-24">
                       <Loader2 className="h-6 w-6 animate-spin" />
@@ -164,7 +164,7 @@ const Upload = () => {
                       ))}
                     </div>
                   ) : (
-                     <p className="text-center text-sm text-muted-foreground">Nenhuma cor Vita encontrada.</p>
+                     <p className="text-center text-sm text-muted-foreground">Nenhuma cor encontrada.</p>
                   )}
                 </div>
               )}
