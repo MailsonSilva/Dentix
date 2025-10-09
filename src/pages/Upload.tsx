@@ -13,14 +13,15 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { useAuth } from "@/contexts/AuthContext";
+import { CameraFullScreen } from "@/components/CameraFullScreen";
 
 const Upload = () => {
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [isSelectionOpen, setSelectionOpen] = useState(false);
+  const [isCameraOpen, setIsCameraOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const cameraInputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -67,7 +68,6 @@ const Upload = () => {
     setImagePreview(null);
     setSelectedVitaColor(null);
     if (fileInputRef.current) fileInputRef.current.value = "";
-    if (cameraInputRef.current) cameraInputRef.current.value = "";
   };
 
   const handleNext = () => {
@@ -97,6 +97,10 @@ const Upload = () => {
     }
 
     navigate("/select-procedure", { state: { imageFile, imagePreview, vitaColor: selectedColorObject.hexadecimal } });
+  };
+
+  const handleCapture = (file: File) => {
+    processFile(file);
   };
 
   return (
@@ -187,14 +191,6 @@ const Upload = () => {
                 className="hidden"
                 accept="image/*"
               />
-              <input
-                type="file"
-                ref={cameraInputRef}
-                onChange={handleFileChange}
-                className="hidden"
-                accept="image/*"
-                capture="environment"
-              />
             </div>
 
             <div className="mt-8 flex justify-center">
@@ -227,8 +223,8 @@ const Upload = () => {
             <Button
               variant="secondary"
               onClick={() => {
-                cameraInputRef.current?.click();
                 setSelectionOpen(false);
+                setIsCameraOpen(true);
               }}
             >
               <Camera className="mr-2 h-4 w-4" />
@@ -237,6 +233,12 @@ const Upload = () => {
           </div>
         </DialogContent>
       </Dialog>
+
+      <CameraFullScreen
+        open={isCameraOpen}
+        onClose={() => setIsCameraOpen(false)}
+        onCapture={handleCapture}
+      />
     </>
   );
 };
