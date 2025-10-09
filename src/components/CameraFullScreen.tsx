@@ -41,7 +41,7 @@ export const CameraFullScreen: React.FC<CameraFullScreenProps> = ({
       try {
         const constraints = {
           video: {
-            facingMode: { exact: "environment" },
+            facingMode: "environment",
             width: { ideal: 1920 },
             height: { ideal: 1080 },
           },

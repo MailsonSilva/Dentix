@@ -29,7 +29,7 @@ export const CameraCapture: React.FC<CameraCaptureProps> = ({ open, onOpenChange
         try {
           const constraints = {
             video: {
-              facingMode: { exact: "environment" }, // Força a câmera traseira
+              facingMode: "environment", // Força a câmera traseira
               width: { ideal: 1920 },
               height: { ideal: 1080 },
             },
