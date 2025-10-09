@@ -52,24 +52,34 @@ export const CameraFullScreen: React.FC<CameraFullScreenProps> = ({
         if (videoRef.current) {
           videoRef.current.srcObject = mediaStream;
         }
-        setIsCameraReady(true);
+        
+        videoRef.current?.addEventListener('loadedmetadata', () => {
+            setIsCameraReady(true);
+            const videoTrack = mediaStream.getVideoTracks()[0];
+            const capabilities = videoTrack.getCapabilities();
+            
+            // @ts-ignore - Check for torch (flash) capability
+            setHasFlash(!!capabilities.torch);
+            
+            // @ts-ignore - Check for zoom capability
+            if (capabilities.zoom) {
+              setHasZoom(true);
+              // @ts-ignore
+              const { min, max, step } = capabilities.zoom;
+              setZoomRange({ min, max, step });
+              
+              if (typeof videoTrack.getSettings === 'function') {
+                const settings = videoTrack.getSettings();
+                // @ts-ignore
+                setZoomLevel(settings.zoom || min);
+              } else {
+                setZoomLevel(min);
+              }
+            } else {
+              setHasZoom(false);
+            }
+        }, { once: true });
 
-        const videoTrack = mediaStream.getVideoTracks()[0];
-        const capabilities = videoTrack.getCapabilities();
-        
-        // @ts-ignore - Check for torch (flash) capability
-        setHasFlash(!!capabilities.torch);
-        
-        // @ts-ignore - Check for zoom capability
-        if (capabilities.zoom) {
-          setHasZoom(true);
-          // @ts-ignore
-          const { min, max, step } = capabilities.zoom;
-          setZoomRange({ min, max, step });
-          setZoomLevel(min); // Start at minimum zoom
-        } else {
-          setHasZoom(false);
-        }
       } catch (err) {
         console.error("Error accessing camera: ", err);
         showError("Não foi possível acessar a câmera. Verifique as permissões.");
@@ -95,18 +105,30 @@ export const CameraFullScreen: React.FC<CameraFullScreenProps> = ({
     };
   }, [open, capturedImage, startCamera, stopStream]);
 
-  // Effect to apply zoom when slider changes
   useEffect(() => {
-    if (streamRef.current && hasZoom && isCameraReady) {
-      const videoTrack = streamRef.current.getVideoTracks()[0];
+    if (!streamRef.current || !hasZoom || !isCameraReady) {
+      return;
+    }
+
+    const videoTrack = streamRef.current.getVideoTracks()[0];
+
+    if (typeof videoTrack.applyConstraints !== 'function') {
+      console.warn("applyConstraints is not supported on this video track.");
+      setHasZoom(false);
+      return;
+    }
+
+    (async () => {
       try {
         // @ts-ignore
-        videoTrack.applyConstraints({ advanced: [{ zoom: zoomLevel }] });
+        await videoTrack.applyConstraints({ advanced: [{ zoom: zoomLevel }] });
       } catch (error) {
         console.error("Error applying zoom:", error);
+        showError("O zoom não é compatível com este dispositivo.");
+        setHasZoom(false);
       }
-    }
-  }, [zoomLevel, hasZoom, isCameraReady]);
+    })();
+  }, [zoomLevel, hasZoom, isCameraReady, setHasZoom]);
 
   const handleCapture = () => {
     if (videoRef.current && canvasRef.current) {
@@ -143,7 +165,7 @@ export const CameraFullScreen: React.FC<CameraFullScreenProps> = ({
 
   const handleRetake = () => {
     setCapturedImage(null);
-    setZoomLevel(zoomRange.min); // Reset zoom on retake
+    setZoomLevel(zoomRange.min);
   };
 
   const handleToggleFlash = async () => {
