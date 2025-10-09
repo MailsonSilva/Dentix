@@ -143,22 +143,22 @@ const Upload = () => {
                       <Loader2 className="h-6 w-6 animate-spin" />
                     </div>
                   ) : vitaColors.length > 0 ? (
-                    <div className="grid grid-cols-4 sm:grid-cols-5 gap-3">
+                    <div className="grid grid-cols-5 sm:grid-cols-6 gap-2">
                       {vitaColors.map((color) => (
                         <button
                           key={color.id}
                           type="button"
                           onClick={() => setSelectedVitaColor(color.nome)}
                           className={cn(
-                            "relative w-full h-20 rounded-lg overflow-hidden border transition-all focus:outline-none",
+                            "relative w-full h-16 rounded-lg overflow-hidden border transition-all focus:outline-none",
                             selectedVitaColor === color.nome
                               ? "ring-2 ring-primary ring-offset-2"
                               : "border-gray-200 hover:border-gray-400"
                           )}
                           style={{ backgroundColor: color.hexadecimal }}
                         >
-                          <div className="absolute bottom-1 left-1 right-1 h-8 bg-white rounded-md flex items-center justify-center shadow-sm">
-                            <span className="text-sm font-semibold text-gray-800">{color.nome}</span>
+                          <div className="absolute bottom-1 left-1 right-1 h-7 bg-white rounded-md flex items-center justify-center shadow-sm">
+                            <span className="text-xs font-semibold text-gray-800">{color.nome}</span>
                           </div>
                         </button>
                       ))}
