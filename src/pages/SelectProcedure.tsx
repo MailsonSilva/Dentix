@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/components/ui/use-toast";
 import { cn } from "@/lib/utils";
-import { Loader2 } from "lucide-react";
+import { Loader2, Sparkles } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 
 const SelectProcedure = () => {
@@ -57,7 +57,7 @@ const SelectProcedure = () => {
 
   return (
     <div className="container mx-auto p-4 flex flex-col items-center justify-center min-h-screen">
-      <Card className="w-full max-w-2xl">
+      <Card className="w-full max-w-md">
         <CardHeader>
           <CardTitle className="text-center text-2xl">Selecione o Procedimento</CardTitle>
         </CardHeader>
@@ -67,22 +67,20 @@ const SelectProcedure = () => {
               <Loader2 className="h-8 w-8 animate-spin" />
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="flex justify-center">
               {procedures.map((proc) => (
                 <div
                   key={proc.id}
                   onClick={() => setSelectedProcedure(proc.id)}
                   className={cn(
-                    "p-4 border rounded-lg cursor-pointer transition-all text-center",
+                    "p-6 border rounded-lg cursor-pointer transition-all text-center flex flex-col items-center justify-center gap-3 w-64",
                     selectedProcedure === proc.id
                       ? "border-primary ring-2 ring-primary bg-primary/10"
                       : "hover:border-primary/50 hover:bg-muted"
                   )}
                 >
+                  <Sparkles className="h-8 w-8 text-primary" />
                   <h4 className="font-semibold text-lg">{proc.nome}</h4>
-                  {proc.descricao && (
-                    <p className="text-sm text-muted-foreground mt-1">{proc.descricao}</p>
-                  )}
                 </div>
               ))}
             </div>
