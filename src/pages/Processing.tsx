@@ -55,41 +55,30 @@ const Processing = () => {
             headers: {
               "Content-Type": "application/json",
             },
+            responseType: 'blob', // Important: expect a binary response
             timeout: 60000, // Aumenta o tempo limite para 60 segundos
           },
         );
 
         console.log("--- RESPOSTA RECEBIDA DO N8N ---");
-        console.log(response.data);
+        console.log(response);
         console.log("------------------------------------");
 
-        let simulatedImageUrl;
-        const responseData = response.data;
+        const responseBlob = response.data;
 
-        if (typeof responseData === "string") {
-          // Caso 1: A resposta é a própria string base64/dataURL
-          simulatedImageUrl = responseData;
-        } else if (typeof responseData === "object" && responseData !== null) {
-          // Caso 2: A resposta é um objeto JSON
-          // Tentamos encontrar a imagem em chaves comuns
-          simulatedImageUrl =
-            responseData.simulatedImageB64 || // Adicionada a nova chave
-            responseData.simulatedImageUrl ||
-            responseData.imageData ||
-            responseData.base64;
+        if (!(responseBlob instanceof Blob) || responseBlob.size === 0) {
+          throw new Error("A resposta do servidor não continha uma imagem válida.");
         }
 
-        // Se encontramos algo, vamos garantir que é uma Data URL completa
-        if (
-          simulatedImageUrl &&
-          typeof simulatedImageUrl === "string" &&
-          !simulatedImageUrl.startsWith("data:image")
-        ) {
-          simulatedImageUrl = `data:image/jpeg;base64,${simulatedImageUrl}`;
-        }
+        // Convert the received Blob into a Data URL to be used in <img> tags
+        const simulatedImageUrl = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(reader.result as string);
+          reader.onerror = reject;
+          reader.readAsDataURL(responseBlob);
+        });
 
-        // Adiciona uma verificação para garantir que a URL da imagem não está vazia ou incompleta
-        if (simulatedImageUrl && simulatedImageUrl.length > 100) { // Um valor baixo, apenas para garantir que não está vazio
+        if (simulatedImageUrl && simulatedImageUrl.length > 100) {
           navigate("/result", {
             state: {
               originalImage: imagePreview,
@@ -98,9 +87,9 @@ const Processing = () => {
             },
           });
         } else {
-          console.error("Resposta do n8n continha uma imagem inválida ou vazia:", simulatedImageUrl);
+          console.error("A imagem convertida do blob é inválida ou vazia:", simulatedImageUrl);
           throw new Error(
-            "A resposta do servidor não continha uma imagem válida. Verifique o workflow do n8n.",
+            "A resposta do servidor não pôde ser convertida para uma imagem válida.",
           );
         }
       } catch (error) {
