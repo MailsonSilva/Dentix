@@ -21,7 +21,7 @@ const SelectProcedure = () => {
   const location = useLocation();
   const { toast } = useToast();
 
-  const { imageFile, imagePreview } = location.state || {};
+  const { imageFile, imagePreview, vitaColor } = location.state || {};
 
   useEffect(() => {
     const fetchData = async () => {
@@ -80,6 +80,7 @@ const SelectProcedure = () => {
         imagePreview,
         procedureId: procedure.id,
         procedureName: procedure.nome,
+        vitaColor: vitaColor,
       },
     });
   };
