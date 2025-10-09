@@ -21,6 +21,14 @@ interface VitaColor {
   hexadecimal: string;
 }
 
+// Define um tipo para os procedimentos
+interface Procedure {
+  id: string;
+  nome: string;
+  descricao: string | null;
+  webhook_valor: string | null;
+}
+
 interface AuthContextType {
   session: Session | null;
   user: User | null;
@@ -28,6 +36,8 @@ interface AuthContextType {
   loading: boolean;
   vitaColors: VitaColor[];
   loadingVitaColors: boolean;
+  procedures: Procedure[];
+  loadingProcedures: boolean;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -37,6 +47,8 @@ const AuthContext = createContext<AuthContextType>({
   loading: true,
   vitaColors: [],
   loadingVitaColors: true,
+  procedures: [],
+  loadingProcedures: true,
 });
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
@@ -46,6 +58,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [loading, setLoading] = useState(true);
   const [vitaColors, setVitaColors] = useState<VitaColor[]>([]);
   const [loadingVitaColors, setLoadingVitaColors] = useState(true);
+  const [procedures, setProcedures] = useState<Procedure[]>([]);
+  const [loadingProcedures, setLoadingProcedures] = useState(true);
 
   useEffect(() => {
     let isMounted = true;
@@ -94,10 +108,31 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       }
     };
 
+    const fetchProcedures = async () => {
+      if (!isMounted) return;
+      setLoadingProcedures(true);
+      try {
+        const { data, error } = await supabase
+          .from('procedimentos')
+          .select('id, nome, descricao, webhook_valor')
+          .eq('ativo', true)
+          .order('nome');
+
+        if (error) throw error;
+        if (isMounted) setProcedures(data || []);
+      } catch (error) {
+        console.error("Error fetching procedures in context:", error);
+        if (isMounted) setProcedures([]);
+      } finally {
+        if (isMounted) setLoadingProcedures(false);
+      }
+    };
+
     // Initialize: get current session and other data
     const init = async () => {
-      // Fetch colors as soon as the provider mounts
+      // Fetch colors and procedures as soon as the provider mounts
       fetchVitaColors();
+      fetchProcedures();
 
       try {
         const {
@@ -165,6 +200,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     loading,
     vitaColors,
     loadingVitaColors,
+    procedures,
+    loadingProcedures,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

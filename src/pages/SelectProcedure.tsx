@@ -1,53 +1,20 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/components/ui/use-toast";
 import { cn } from "@/lib/utils";
 import { Loader2 } from "lucide-react";
-
-interface Procedure {
-  id: string;
-  nome: string;
-  descricao: string;
-  webhook_valor: string | null;
-}
+import { useAuth } from "@/contexts/AuthContext";
 
 const SelectProcedure = () => {
-  const [procedures, setProcedures] = useState<Procedure[]>([]);
   const [selectedProcedure, setSelectedProcedure] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
   const location = useLocation();
   const { toast } = useToast();
+  const { procedures, loadingProcedures: loading } = useAuth();
 
   const { imageFile, imagePreview, vitaColor } = location.state || {};
-
-  useEffect(() => {
-    const fetchData = async () => {
-      setLoading(true);
-      try {
-        const { data: proceduresData, error: proceduresError } = await supabase
-          .from("procedimentos")
-          .select("*")
-          .eq("ativo", true);
-        if (proceduresError) throw proceduresError;
-        setProcedures(proceduresData || []);
-      } catch (error) {
-        console.error("Error fetching data:", error);
-        toast({
-          title: "Erro",
-          description: "Não foi possível carregar os procedimentos. Tente novamente.",
-          variant: "destructive",
-        });
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchData();
-  }, [toast]);
 
   const handleNext = () => {
     if (!selectedProcedure) {
