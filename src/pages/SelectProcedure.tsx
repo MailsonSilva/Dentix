@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Loader2, Smile, Sun, Sparkles, Paintbrush, Layers } from 'lucide-react';
-import { useSimulation } from '@/context/SimulationContext';
+import { showError } from '@/utils/toast';
 
 const getProcedureIcon = (procedureName: string) => {
   const name = procedureName.toLowerCase();
@@ -22,12 +22,21 @@ const getProcedureIcon = (procedureName: string) => {
   return <Smile size={48} className="mx-auto mb-4 text-blue-500" />;
 };
 
-
 const SelectProcedure = () => {
   const [procedures, setProcedures] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const { selectedProcedure, setSelectedProcedure } = useSimulation();
+  const [selectedProcedure, setSelectedProcedure] = useState<string | null>(null);
   const navigate = useNavigate();
+  const location = useLocation();
+
+  const { imageFile, imagePreview, vitaColor } = location.state || {};
+
+  useEffect(() => {
+    if (!imageFile || !imagePreview) {
+      showError("Nenhuma imagem selecionada. Por favor, comece novamente.");
+      navigate('/upload');
+    }
+  }, [imageFile, imagePreview, navigate]);
 
   useEffect(() => {
     const fetchProcedures = async () => {
@@ -39,6 +48,7 @@ const SelectProcedure = () => {
 
       if (error) {
         console.error('Error fetching procedures:', error);
+        showError("Não foi possível carregar os procedimentos.");
       } else {
         setProcedures(data);
       }
@@ -54,7 +64,22 @@ const SelectProcedure = () => {
 
   const handleNext = () => {
     if (selectedProcedure) {
-      navigate('/patient-name');
+      const procedure = procedures.find(p => p.id === selectedProcedure);
+      if (procedure) {
+        navigate('/processing', {
+          state: {
+            imageFile,
+            imagePreview,
+            procedureId: procedure.id,
+            procedureName: procedure.webhook_valor || procedure.nome,
+            vitaColor,
+          },
+        });
+      } else {
+        showError("Procedimento selecionado não encontrado.");
+      }
+    } else {
+      showError("Por favor, selecione um procedimento.");
     }
   };
 
