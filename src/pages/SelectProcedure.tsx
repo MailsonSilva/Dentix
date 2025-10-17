@@ -1,98 +1,100 @@
-import { useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { useToast } from "@/components/ui/use-toast";
-import { cn } from "@/lib/utils";
-import { Loader2, Sparkles } from "lucide-react";
-import { useAuth } from "@/contexts/AuthContext";
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { supabase } from '@/integrations/supabase';
+import { Button } from '@/components/ui/button';
+import { Loader2, Smile, Sun, Sparkles, Paintbrush, Layers } from 'lucide-react';
+import { useSimulation } from '@/context/SimulationContext';
+
+const getProcedureIcon = (procedureName: string) => {
+  const name = procedureName.toLowerCase();
+  if (name.includes('clareamento')) {
+    return <Sun size={48} className="mx-auto mb-4 text-blue-500" />;
+  }
+  if (name.includes('lentes')) {
+    return <Sparkles size={48} className="mx-auto mb-4 text-blue-500" />;
+  }
+  if (name.includes('facetas')) {
+    return <Paintbrush size={48} className="mx-auto mb-4 text-blue-500" />;
+  }
+  if (name.includes('implante')) {
+    return <Layers size={48} className="mx-auto mb-4 text-blue-500" />;
+  }
+  return <Smile size={48} className="mx-auto mb-4 text-blue-500" />;
+};
+
 
 const SelectProcedure = () => {
-  const [selectedProcedure, setSelectedProcedure] = useState<string | null>(null);
+  const [procedures, setProcedures] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const { selectedProcedure, setSelectedProcedure } = useSimulation();
   const navigate = useNavigate();
-  const location = useLocation();
-  const { toast } = useToast();
-  const { procedures, loadingProcedures: loading } = useAuth();
 
-  const { imageFile, imagePreview, vitaColor } = location.state || {};
+  useEffect(() => {
+    const fetchProcedures = async () => {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('procedimentos')
+        .select('*')
+        .eq('ativo', true);
+
+      if (error) {
+        console.error('Error fetching procedures:', error);
+      } else {
+        setProcedures(data);
+      }
+      setLoading(false);
+    };
+
+    fetchProcedures();
+  }, []);
+
+  const handleProcedureSelect = (procedureId: string) => {
+    setSelectedProcedure(procedureId);
+  };
 
   const handleNext = () => {
-    if (!selectedProcedure) {
-      toast({ title: "Atenção", description: "Por favor, selecione um procedimento." });
-      return;
+    if (selectedProcedure) {
+      navigate('/patient-name');
     }
-
-    if (!imageFile || !imagePreview) {
-      toast({
-        title: "Erro de Navegação",
-        description: "A imagem do paciente não foi encontrada. Por favor, comece o processo novamente.",
-        variant: "destructive",
-      });
-      navigate("/upload");
-      return;
-    }
-
-    const procedure = procedures.find((p) => p.id === selectedProcedure);
-    if (!procedure) {
-      toast({
-        title: "Erro",
-        description: "O procedimento selecionado é inválido.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    const procedureValueForWebhook = procedure.webhook_valor || procedure.nome;
-
-    navigate("/processing", {
-      state: {
-        imageFile,
-        imagePreview,
-        procedureId: procedure.id,
-        procedureName: procedureValueForWebhook,
-        vitaColor: vitaColor,
-      },
-    });
   };
 
   return (
-    <div className="container mx-auto p-4 flex flex-col items-center justify-center min-h-screen">
-      <Card className="w-full max-w-md">
-        <CardHeader>
-          <CardTitle className="text-center text-2xl">Selecione o Procedimento</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {loading ? (
-            <div className="flex justify-center items-center h-40">
-              <Loader2 className="h-8 w-8 animate-spin" />
-            </div>
-          ) : (
-            <div className="flex justify-center">
-              {procedures.map((proc) => (
-                <div
-                  key={proc.id}
-                  onClick={() => setSelectedProcedure(proc.id)}
-                  className={cn(
-                    "p-6 border rounded-lg cursor-pointer transition-all text-center flex flex-col items-center justify-center gap-3 w-64",
-                    selectedProcedure === proc.id
-                      ? "border-primary ring-2 ring-primary bg-primary/10"
-                      : "hover:border-primary/50 hover:bg-muted"
-                  )}
-                >
-                  <Sparkles className="h-8 w-8 text-primary" />
-                  <h4 className="font-semibold text-lg">{proc.nome}</h4>
-                </div>
-              ))}
-            </div>
-          )}
+    <div className="container mx-auto p-4 flex flex-col h-screen">
+      <div className="text-center my-8">
+        <h1 className="text-3xl font-bold">Selecione o Procedimento</h1>
+        <p className="text-muted-foreground">Escolha um dos procedimentos abaixo para iniciar a simulação.</p>
+      </div>
 
-          <div className="mt-8 flex justify-center">
-            <Button onClick={handleNext} disabled={!selectedProcedure || loading}>
-              Avançar
-            </Button>
+      <div className="flex-grow overflow-y-auto px-4">
+        {loading ? (
+          <div className="flex justify-center items-center h-full">
+            <Loader2 className="h-8 w-8 animate-spin" />
           </div>
-        </CardContent>
-      </Card>
+        ) : (
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-6">
+            {procedures.map((proc) => (
+              <div
+                key={proc.id}
+                className={`p-6 border rounded-xl cursor-pointer text-center transition-all duration-300 flex flex-col items-center justify-center aspect-square
+                  ${selectedProcedure === proc.id 
+                    ? 'border-blue-500 bg-blue-50 shadow-lg scale-105' 
+                    : 'border-gray-200 bg-white hover:shadow-md hover:border-blue-300'
+                  }`}
+                onClick={() => handleProcedureSelect(proc.id)}
+              >
+                {getProcedureIcon(proc.nome)}
+                <span className="font-semibold text-gray-700">{proc.nome}</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div className="mt-8 text-center">
+        <Button onClick={handleNext} disabled={!selectedProcedure} size="lg">
+          Avançar
+        </Button>
+      </div>
     </div>
   );
 };
