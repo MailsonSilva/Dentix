@@ -5,7 +5,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { SaveSimulationDialog } from "@/components/SaveSimulationDialog";
 import ImageCarouselDialog from "@/components/ImageCarouselDialog";
 
-const Result = () => {
+const SimulationResult = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { originalImage, simulatedImage, procedureId } = location.state || {};
@@ -107,4 +107,4 @@ const Result = () => {
   );
 };
 
-export default Result;
+export default SimulationResult;

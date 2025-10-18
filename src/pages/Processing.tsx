@@ -69,7 +69,7 @@ const Processing = () => {
         });
 
         if (simulatedImageUrl && simulatedImageUrl.length > 100) {
-          navigate("/result", {
+          navigate("/simulation-result", {
             state: {
               originalImage: imagePreview,
               simulatedImage: simulatedImageUrl,
