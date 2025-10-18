@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Home, Upload, LogOut, Menu, X, ChevronsLeft, ChevronsRight } from 'lucide-react';
+import { Upload, LogOut, Menu, X, ChevronsLeft, ChevronsRight, History } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
@@ -22,7 +22,7 @@ const ResponsiveNav = ({ isCollapsed, onToggle }: ResponsiveNavProps) => {
   };
 
   const navItems = [
-    { href: '/home', label: 'Início', icon: Home },
+    { href: '/home', label: 'Simulações Salvas', icon: History },
     { href: '/upload', label: 'Nova Simulação', icon: Upload },
   ];
 
@@ -86,10 +86,18 @@ const ResponsiveNav = ({ isCollapsed, onToggle }: ResponsiveNavProps) => {
         "hidden md:flex flex-col border-r bg-background p-4 fixed h-full transition-all duration-300",
         isCollapsed ? "w-20" : "w-64"
       )}>
-        <div className={cn("mb-8 flex", isCollapsed ? "justify-center" : "justify-start")}>
-          <Link to="/home" className="flex items-center gap-2">
+        <div className={cn("flex items-center mb-8 h-10", isCollapsed ? "justify-center" : "justify-between")}>
+          <Link to="/home" className={cn("flex items-center gap-2", isCollapsed ? "hidden" : "flex")}>
             <img src="/logo.png" alt="Dentix Logo" className="h-10 w-auto" />
           </Link>
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            onClick={onToggle}
+            title={isCollapsed ? "Expandir" : "Retrair"}
+          >
+            {isCollapsed ? <ChevronsRight className="h-5 w-5" /> : <ChevronsLeft className="h-5 w-5" />}
+          </Button>
         </div>
         
         <div className="flex-1 flex flex-col gap-2">
@@ -107,15 +115,6 @@ const ResponsiveNav = ({ isCollapsed, onToggle }: ResponsiveNavProps) => {
           >
             <LogOut className="h-5 w-5 flex-shrink-0" />
             <span className={cn(isCollapsed && "hidden")}>Sair</span>
-          </Button>
-          <Button 
-            variant="outline" 
-            size="icon" 
-            className="self-center" 
-            onClick={onToggle}
-            title={isCollapsed ? "Expandir" : "Retrair"}
-          >
-            {isCollapsed ? <ChevronsRight className="h-5 w-5" /> : <ChevronsLeft className="h-5 w-5" />}
           </Button>
         </div>
       </nav>
