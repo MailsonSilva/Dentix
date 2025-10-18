@@ -116,7 +116,7 @@ const Processing = () => {
   }, [imageFile, procedureName, imagePreview, navigate, procedureId, vitaColor]);
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-background p-4">
+    <div className="min-h-[100dvh] flex flex-col items-center justify-center bg-background p-4">
       <div className="text-center">
         <img src="/logo.png" alt="Dentix Logo" className="w-48 mx-auto mb-8" />
         <Loader2 className="h-16 w-16 animate-spin text-primary mx-auto mb-6" />

@@ -21,8 +21,8 @@ const Home: React.FC = () => {
 
   return (
     <>
-      <div className="min-h-screen bg-background p-6 flex items-center">
-        <div className="max-w-2xl mx-auto text-center w-full">
+      <div className="flex flex-col items-center justify-center text-center h-full">
+        <div className="max-w-2xl w-full">
           <img src="/logo.png" alt="Dentix Logo" className="w-36 mx-auto mb-8" />
 
           <h1 className="text-3xl sm:text-4xl font-extrabold mb-2 text-[#404040]">

@@ -84,7 +84,7 @@ const SelectProcedure = () => {
   };
 
   return (
-    <div className="container mx-auto p-4 flex flex-col h-screen justify-center items-center">
+    <div className="container mx-auto p-4 flex flex-col h-full justify-center items-center">
       <div className="text-center my-8">
         <h1 className="text-3xl font-bold">Selecione o Procedimento</h1>
         <p className="text-muted-foreground">Escolha um dos procedimentos abaixo para iniciar a simulação.</p>
@@ -96,11 +96,11 @@ const SelectProcedure = () => {
             <Loader2 className="h-8 w-8 animate-spin" />
           </div>
         ) : (
-          <div className="flex flex-wrap justify-center gap-6">
+          <div className="flex flex-wrap justify-center gap-4 sm:gap-6">
             {procedures.map((proc) => (
               <div
                 key={proc.id}
-                className={`p-6 border rounded-xl cursor-pointer text-center transition-all duration-300 flex flex-col items-center justify-center aspect-square w-40
+                className={`p-4 sm:p-6 border rounded-xl cursor-pointer text-center transition-all duration-300 flex flex-col items-center justify-center aspect-square w-32 sm:w-40
                   ${selectedProcedure === proc.id 
                     ? 'border-blue-500 bg-blue-50 shadow-lg scale-105' 
                     : 'border-gray-200 bg-white hover:shadow-md hover:border-blue-300'
@@ -108,7 +108,7 @@ const SelectProcedure = () => {
                 onClick={() => handleProcedureSelect(proc.id)}
               >
                 {getProcedureIcon(proc.nome)}
-                <span className="font-semibold text-gray-700">{proc.nome}</span>
+                <span className="font-semibold text-gray-700 text-sm sm:text-base">{proc.nome}</span>
               </div>
             ))}
           </div>

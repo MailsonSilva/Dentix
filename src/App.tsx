@@ -22,13 +22,13 @@ import GuestRoute from './components/GuestRoute';
 const ProtectedLayout = () => {
   const [isSidebarCollapsed, setSidebarCollapsed] = useState(false);
   return (
-    <div className="flex min-h-screen bg-muted/40">
+    <div className="flex min-h-[100dvh] bg-muted/40">
       <ResponsiveNav 
         isCollapsed={isSidebarCollapsed} 
         onToggle={() => setSidebarCollapsed(prev => !prev)} 
       />
       <main className={cn(
-        "flex-1 p-4 sm:p-6 md:p-8 transition-all duration-300",
+        "flex-1 p-4 sm:p-6 md:p-8 transition-all duration-300 overflow-y-auto",
         isSidebarCollapsed ? 'md:ml-20' : 'md:ml-64'
       )}>
         <Outlet />
