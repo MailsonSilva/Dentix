@@ -96,19 +96,19 @@ const Upload = () => {
 
         <div className="mt-8">
           <div className="flex justify-center">
-            <div className="bg-white p-6 rounded-xl border shadow-sm w-full">
+            <div className="bg-white p-4 rounded-xl border shadow-sm w-full">
               {loadingColors ? (
                 <div className="flex justify-center items-center h-24">
                   <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
                 </div>
               ) : vitaColors.length > 0 ? (
-                <div className="grid grid-cols-6 sm:grid-cols-8 gap-4 justify-center">
+                <div className="flex items-center gap-4 overflow-x-auto p-2">
                   {vitaColors.map((color) => (
                     <button
                       key={color.id}
                       title={color.nome}
                       onClick={() => setSelectedVitaColor(color.nome)}
-                      className={`w-11 h-11 rounded-full border-2 transition-transform transform hover:scale-110 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500
+                      className={`flex-shrink-0 w-11 h-11 rounded-full border-2 transition-transform transform hover:scale-110 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500
                         ${selectedVitaColor === color.nome ? 'border-blue-500 ring-2 ring-blue-500' : 'border-gray-200'}`}
                       style={{ backgroundColor: color.hexadecimal }}
                     >
