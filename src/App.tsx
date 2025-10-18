@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { BrowserRouter as Router, Route, Routes, Navigate, Outlet } from 'react-router-dom';
+import { BrowserRouter as Router, Route, Routes, Outlet } from 'react-router-dom';
 import ResponsiveNav from './components/ResponsiveNav';
 import Home from './pages/Home';
 import Upload from './pages/Upload';
@@ -18,6 +18,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { cn } from './lib/utils';
 import ProtectedRoute from './components/ProtectedRoute';
 import GuestRoute from './components/GuestRoute';
+import BottomNavBar from './components/BottomNavBar';
 
 const ProtectedLayout = () => {
   const [isSidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -28,11 +29,12 @@ const ProtectedLayout = () => {
         onToggle={() => setSidebarCollapsed(prev => !prev)} 
       />
       <main className={cn(
-        "flex-1 p-4 sm:p-6 md:p-8 transition-all duration-300 overflow-y-auto",
+        "flex-1 p-4 sm:p-6 md:p-8 transition-all duration-300 overflow-y-auto pb-20 md:pb-8",
         isSidebarCollapsed ? 'md:ml-20' : 'md:ml-64'
       )}>
         <Outlet />
       </main>
+      <BottomNavBar />
     </div>
   );
 };
