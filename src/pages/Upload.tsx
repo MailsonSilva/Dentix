@@ -64,69 +64,82 @@ const Upload = () => {
   };
 
   return (
-    <div className="container mx-auto p-4 flex flex-col items-center justify-center min-h-screen">
-      <div className="w-full max-w-2xl">
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold">Simulador de Sorriso</h1>
-          <p className="text-muted-foreground">Faça o upload de uma foto para iniciar a simulação.</p>
-        </div>
+    <div className="max-w-3xl mx-auto py-10 px-5">
+      <div className="text-center mb-8">
+        <h1 className="text-3xl md:text-4xl font-bold mb-2">🦷 Simulador de Sorriso 🌟</h1>
+        <p className="text-muted-foreground text-md md:text-lg">
+          Visualize seu novo sorriso em tempo real. Faça o upload da sua foto.
+        </p>
+      </div>
 
-        <div
-          {...getRootProps()}
-          className={`border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-colors
-            ${isDragActive ? 'border-blue-500 bg-blue-50' : 'border-gray-300 hover:border-blue-400'}
-            ${imagePreview ? 'border-green-500 bg-green-50' : ''}`}
-        >
-          <input {...getInputProps()} />
-          {imagePreview ? (
-            <div className="relative">
-              <img src={imagePreview} alt="Preview" className="mx-auto max-h-64 rounded-lg" />
-              <div className="absolute top-2 right-2 bg-white rounded-full p-1">
-                <CheckCircle className="text-green-500" />
-              </div>
-            </div>
-          ) : (
-            <div className="flex flex-col items-center">
-              <UploadCloud className="h-12 w-12 text-gray-400 mb-4" />
-              <p className="font-semibold">Arraste e solte a imagem aqui, ou clique para selecionar</p>
-              <p className="text-sm text-muted-foreground">PNG, JPG, JPEG</p>
-            </div>
-          )}
-        </div>
-
-        <div className="mt-8">
-          <div className="flex justify-center">
-            <div className="bg-white p-4 rounded-xl border shadow-sm w-full">
-              {loadingColors ? (
-                <div className="flex justify-center items-center h-24">
-                  <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
-                </div>
-              ) : vitaColors.length > 0 ? (
-                <div className="flex items-center gap-4 overflow-x-auto p-2">
-                  {vitaColors.map((color) => (
-                    <button
-                      key={color.id}
-                      title={color.nome}
-                      onClick={() => setSelectedVitaColor(color.nome)}
-                      className={`flex-shrink-0 w-11 h-11 rounded-full border-2 transition-transform transform hover:scale-110 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500
-                        ${selectedVitaColor === color.nome ? 'border-blue-500 ring-2 ring-blue-500' : 'border-gray-200'}`}
-                      style={{ backgroundColor: color.hexadecimal }}
-                    >
-                    </button>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-muted-foreground text-center">Nenhuma cor disponível.</p>
-              )}
+      <div
+        {...getRootProps()}
+        className={`border-2 border-dashed rounded-xl p-8 md:p-12 text-center cursor-pointer transition-colors
+          ${isDragActive ? 'border-blue-500 bg-blue-50' : 'border-blue-300 hover:border-blue-400 bg-blue-50/50'}
+          ${imagePreview ? 'border-green-500 bg-green-50' : ''}`}
+      >
+        <input {...getInputProps()} />
+        {imagePreview ? (
+          <div className="relative">
+            <img src={imagePreview} alt="Preview" className="mx-auto max-h-64 rounded-lg" />
+            <div className="absolute top-2 right-2 bg-white rounded-full p-1 shadow">
+              <CheckCircle className="text-green-500" />
             </div>
           </div>
-        </div>
+        ) : (
+          <div className="flex flex-col items-center text-blue-800">
+            <UploadCloud className="h-12 w-12 text-blue-400 mb-4" />
+            <p className="font-semibold text-lg">Arraste e solte a imagem aqui</p>
+            <p className="text-sm text-muted-foreground my-2">ou</p>
+            <Button variant="secondary" size="sm" className="pointer-events-none">
+              Clique para Selecionar
+            </Button>
+            <p className="text-xs text-muted-foreground mt-4">
+              Formatos aceitos: PNG, JPG, JPEG
+            </p>
+          </div>
+        )}
+      </div>
 
-        <div className="mt-8 text-center">
-          <Button onClick={handleNext} disabled={!imageFile} size="lg">
-            Avançar
-          </Button>
+      <div className="mt-8">
+        <p className="font-semibold text-center mb-4">Escolha a cor base do dente (Opcional)</p>
+        <div className="bg-gray-50 p-4 rounded-xl border w-full">
+          {loadingColors ? (
+            <div className="flex justify-center items-center h-24">
+              <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
+            </div>
+          ) : vitaColors.length > 0 ? (
+            <div className="flex flex-wrap items-center justify-center gap-4 p-2">
+              {vitaColors.map((color) => (
+                <button
+                  key={color.id}
+                  title={color.nome}
+                  onClick={() => setSelectedVitaColor(color.nome)}
+                  className={`flex-shrink-0 w-10 h-10 rounded-full border-2 shadow-sm transition-all transform hover:scale-110 focus:outline-none 
+                    ${selectedVitaColor === color.nome 
+                      ? 'ring-2 ring-offset-2 ring-blue-500 scale-110' 
+                      : 'border-gray-200'
+                    }`}
+                  style={{ backgroundColor: color.hexadecimal }}
+                >
+                </button>
+              ))}
+            </div>
+          ) : (
+            <p className="text-muted-foreground text-center">Nenhuma cor disponível.</p>
+          )}
         </div>
+      </div>
+
+      <div className="mt-8 text-center">
+        <Button 
+          onClick={handleNext} 
+          disabled={!imageFile} 
+          size="lg"
+          className="w-full sm:w-auto"
+        >
+          Avançar
+        </Button>
       </div>
     </div>
   );
