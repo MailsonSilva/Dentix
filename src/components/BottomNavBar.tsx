@@ -1,7 +1,6 @@
 import { Link, useLocation } from 'react-router-dom';
 import { Home, LayoutGrid, User } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { MoreMenuDrawer } from './MoreMenuDrawer';
 
 const BottomNavBar = () => {
   const location = useLocation();
@@ -34,7 +33,6 @@ const BottomNavBar = () => {
         {navItems.map((item) => (
           <NavLink key={item.href} {...item} />
         ))}
-        <MoreMenuDrawer />
       </nav>
     </footer>
   );

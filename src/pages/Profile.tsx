@@ -2,6 +2,8 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Form,
@@ -12,35 +14,29 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { showError, showSuccess } from "@/utils/toast";
-import { useState, useEffect } from "react";
-import { Loader2, UploadCloud } from "lucide-react";
-import { useAuth } from "@/contexts/AuthContext";
-import { uploadFile } from "@/utils/storage";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { formatCpfCnpj, formatPhone } from "@/lib/formatters";
+import { Loader2, LogOut } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { Separator } from "@/components/ui/separator";
 
-const profileFormSchema = z.object({
-  nome_completo: z.string().min(3, { message: "O nome completo é obrigatório." }),
+const profileSchema = z.object({
+  nome_completo: z.string().min(3, "Nome completo é obrigatório."),
+  email: z.string().email("E-mail inválido."),
   telefone: z.string().optional(),
   empresa: z.string().optional(),
   cpf_cnpj: z.string().optional(),
 });
 
-type ProfileFormValues = z.infer<typeof profileFormSchema>;
-
 const Profile = () => {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
-  const [fetching, setFetching] = useState(true);
-  const [logoFile, setLogoFile] = useState<File | null>(null);
-  const [logoPreview, setLogoPreview] = useState<string | null>(null);
 
-  const form = useForm<ProfileFormValues>({
-    resolver: zodResolver(profileFormSchema),
+  const form = useForm<z.infer<typeof profileSchema>>({
+    resolver: zodResolver(profileSchema),
     defaultValues: {
       nome_completo: "",
+      email: "",
       telefone: "",
       empresa: "",
       cpf_cnpj: "",
@@ -49,195 +45,171 @@ const Profile = () => {
 
   useEffect(() => {
     const fetchProfile = async () => {
-      if (!user) return;
-      setFetching(true);
-      try {
+      if (user) {
         const { data, error } = await supabase
           .from("usuarios")
           .select("*")
           .eq("id", user.id)
           .single();
 
-        if (error && error.code !== 'PGRST116') {
-          throw error;
-        }
-
-        if (data) {
+        if (error && error.code !== 'PGRST116') { // Ignore 'exact one row' error if profile doesn't exist yet
+          console.error("Error fetching profile:", error);
+          showError("Erro ao carregar perfil.");
+        } else if (data) {
           form.reset({
-            nome_completo: data.nome_completo || '',
-            telefone: data.telefone ? formatPhone(data.telefone) : '',
-            empresa: data.empresa || '',
-            cpf_cnpj: data.cpf_cnpj ? formatCpfCnpj(data.cpf_cnpj) : '',
+            nome_completo: data.nome_completo || user.user_metadata?.full_name || "",
+            email: data.email || user.email || "",
+            telefone: data.telefone || "",
+            empresa: data.empresa || "",
+            cpf_cnpj: data.cpf_cnpj || "",
           });
-          setLogoPreview(data.logo_url || null);
+        } else {
+          // Pre-fill from auth data if no profile exists
+          form.reset({
+            nome_completo: user.user_metadata?.full_name || "",
+            email: user.email || "",
+            telefone: "",
+            empresa: "",
+            cpf_cnpj: "",
+          });
         }
-      } catch (error) {
-        console.error("Error fetching profile:", error);
-        showError("Não foi possível carregar seu perfil.");
-      } finally {
-        setFetching(false);
       }
     };
 
     fetchProfile();
   }, [user, form]);
 
-  const handleLogoChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      setLogoFile(file);
-      setLogoPreview(URL.createObjectURL(file));
+  const onSubmit = async (values: z.infer<typeof profileSchema>) => {
+    if (!user) return;
+
+    setLoading(true);
+    const { error } = await supabase
+      .from("usuarios")
+      .update({
+        nome_completo: values.nome_completo,
+        email: values.email,
+        telefone: values.telefone,
+        empresa: values.empresa,
+        cpf_cnpj: values.cpf_cnpj,
+        atualizado_em: new Date().toISOString(),
+      })
+      .eq("id", user.id);
+
+    if (error) {
+      showError("Erro ao atualizar perfil.");
+      console.error("Profile update error:", error);
+    } else {
+      // Also update the user's email in auth if it has changed
+      if (values.email !== user.email) {
+        const { error: authError } = await supabase.auth.updateUser({ email: values.email });
+        if (authError) {
+          showError("Erro ao atualizar e-mail de login. Verifique sua caixa de entrada para confirmar a alteração.");
+          console.error("Auth email update error:", authError);
+        } else {
+          showSuccess("Perfil atualizado! Verifique seu e-mail para confirmar a alteração de endereço.");
+        }
+      } else {
+        showSuccess("Perfil atualizado com sucesso!");
+      }
     }
+    setLoading(false);
   };
 
-  async function onSubmit(values: ProfileFormValues) {
-    if (!user) return;
-    setLoading(true);
-    try {
-      const updatePayload: any = {
-        ...values,
-        // Remove a formatação antes de salvar no banco
-        telefone: values.telefone?.replace(/\D/g, ''),
-        cpf_cnpj: values.cpf_cnpj?.replace(/\D/g, ''),
-        atualizado_em: new Date().toISOString(),
-      };
-
-      if (logoFile) {
-        const newLogoUrl = await uploadFile(logoFile, "logos_empresas");
-        updatePayload.logo_url = newLogoUrl;
-      }
-
-      const { error } = await supabase
-        .from("usuarios")
-        .update(updatePayload)
-        .eq("id", user.id);
-
-      if (error) throw error;
-
-      showSuccess("Perfil atualizado com sucesso!");
-      if (updatePayload.logo_url) {
-        setLogoPreview(updatePayload.logo_url);
-      }
-      setLogoFile(null);
-    } catch (error) {
-      console.error("Error updating profile:", error);
-      showError("Ocorreu um erro ao atualizar seu perfil.");
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  if (fetching) {
-    return (
-      <div className="container py-8 flex justify-center">
-        <Loader2 className="h-8 w-8 animate-spin" />
-      </div>
-    );
-  }
+  const handleLogout = async () => {
+    await logout();
+    navigate('/');
+  };
 
   return (
-    <div className="container py-8">
-      <Card className="max-w-2xl mx-auto">
-        <CardHeader>
-          <CardTitle>Meu Perfil</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+    <div className="container mx-auto max-w-2xl p-4">
+      <h1 className="text-2xl font-bold mb-6">Meu Perfil</h1>
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+          <FormField
+            control={form.control}
+            name="nome_completo"
+            render={({ field }) => (
               <FormItem>
-                <FormLabel>Logo</FormLabel>
-                <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-                  <Avatar className="h-20 w-20">
-                    <AvatarImage src={logoPreview || undefined} alt="Logo" />
-                    <AvatarFallback>
-                      <UploadCloud className="h-8 w-8 text-muted-foreground" />
-                    </AvatarFallback>
-                  </Avatar>
-                  <FormControl>
-                    <Input
-                      type="file"
-                      accept="image/png, image/jpeg, image/svg+xml"
-                      onChange={handleLogoChange}
-                      className="max-w-xs"
-                    />
-                  </FormControl>
-                </div>
+                <FormLabel>Nome Completo</FormLabel>
+                <FormControl>
+                  <Input {...field} />
+                </FormControl>
+                <FormMessage />
               </FormItem>
-
-              <FormField
-                control={form.control}
-                name="nome_completo"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Nome Completo</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Seu nome completo" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="email"
+            render={({ field }) => (
               <FormItem>
                 <FormLabel>E-mail</FormLabel>
                 <FormControl>
-                  <Input value={user?.email || ''} disabled />
+                  <Input type="email" {...field} />
                 </FormControl>
+                <FormMessage />
               </FormItem>
-              <FormField
-                control={form.control}
-                name="telefone"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Telefone</FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder="(XX) XXXXX-XXXX"
-                        {...field}
-                        onChange={(e) => field.onChange(formatPhone(e.target.value))}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="empresa"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Empresa / Clínica</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Nome da sua empresa" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="cpf_cnpj"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>CPF/CNPJ</FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder="Seu CPF ou CNPJ"
-                        {...field}
-                        onChange={(e) => field.onChange(formatCpfCnpj(e.target.value))}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <Button type="submit" disabled={loading}>
-                {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Salvar Alterações
-              </Button>
-            </form>
-          </Form>
-        </CardContent>
-      </Card>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="telefone"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Telefone</FormLabel>
+                <FormControl>
+                  <Input {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="empresa"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Empresa</FormLabel>
+                <FormControl>
+                  <Input {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="cpf_cnpj"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>CPF/CNPJ</FormLabel>
+                <FormControl>
+                  <Input {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <Button type="submit" disabled={loading} className="w-full sm:w-auto">
+            {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            Salvar Alterações
+          </Button>
+        </form>
+      </Form>
+
+      <Separator className="my-8" />
+
+      <div>
+        <h2 className="text-lg font-semibold mb-4">Outras Ações</h2>
+        <Button
+          variant="outline"
+          className="w-full sm:w-auto text-red-600 border-red-600 hover:bg-red-50 hover:text-red-700"
+          onClick={handleLogout}
+        >
+          <LogOut className="mr-2 h-4 w-4" />
+          Sair da Conta
+        </Button>
+      </div>
     </div>
   );
 };
