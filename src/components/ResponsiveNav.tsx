@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Upload, LogOut, Menu, X, ChevronsLeft, ChevronsRight, History } from 'lucide-react';
+import { Home, LayoutGrid, User, LogOut, Menu, X, ChevronsLeft, ChevronsRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
@@ -18,12 +18,13 @@ const ResponsiveNav = ({ isCollapsed, onToggle }: ResponsiveNavProps) => {
 
   const handleLogout = async () => {
     await logout();
-    navigate('/login');
+    navigate('/');
   };
 
   const navItems = [
-    { href: '/home', label: 'Simulações Salvas', icon: History },
-    { href: '/upload', label: 'Nova Simulação', icon: Upload },
+    { href: '/home', label: 'Home', icon: Home },
+    { href: '/simulations', label: 'Simulações', icon: LayoutGrid },
+    { href: '/profile', label: 'Perfil', icon: User },
   ];
 
   const NavLink = ({ href, label, icon: Icon }: { href: string; label: string; icon: React.ElementType }) => {
