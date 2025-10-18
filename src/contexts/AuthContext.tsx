@@ -38,6 +38,7 @@ interface AuthContextType {
   loadingVitaColors: boolean;
   procedures: Procedure[];
   loadingProcedures: boolean;
+  logout: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -49,6 +50,7 @@ const AuthContext = createContext<AuthContextType>({
   loadingVitaColors: true,
   procedures: [],
   loadingProcedures: true,
+  logout: async () => {},
 });
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
@@ -60,6 +62,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [loadingVitaColors, setLoadingVitaColors] = useState(true);
   const [procedures, setProcedures] = useState<Procedure[]>([]);
   const [loadingProcedures, setLoadingProcedures] = useState(true);
+
+  const logout = async () => {
+    await supabase.auth.signOut();
+  };
 
   useEffect(() => {
     let isMounted = true;
@@ -202,6 +208,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     loadingVitaColors,
     procedures,
     loadingProcedures,
+    logout,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

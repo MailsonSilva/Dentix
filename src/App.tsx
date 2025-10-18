@@ -6,7 +6,7 @@ import Upload from './pages/Upload';
 import SelectProcedure from './pages/SelectProcedure';
 import SimulationResult from './pages/SimulationResult';
 import Login from './pages/Login';
-import AuthProvider, { useAuth } from './contexts/AuthContext';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { Toaster } from "@/components/ui/toaster"
 import { cn } from './lib/utils';
 
