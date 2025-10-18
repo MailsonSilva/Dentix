@@ -1,92 +1,121 @@
-import { Link, useLocation } from "react-router-dom";
-import { Home, LayoutGrid, User, LogOut } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { Button } from "./ui/button";
-import { supabase } from "@/integrations/supabase/client";
-import { useNavigate } from "react-router-dom";
+import { useState } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Home, Upload, LogOut, Menu, X, ChevronsLeft, ChevronsRight } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { useAuth } from '@/contexts/AuthContext';
+import { cn } from '@/lib/utils';
 
-const navItems = [
-  { href: "/home", label: "Home", icon: Home },
-  { href: "/simulations", label: "Simulações", icon: LayoutGrid },
-  { href: "/profile", label: "Perfil", icon: User },
-];
+interface ResponsiveNavProps {
+  isCollapsed: boolean;
+  onToggle: () => void;
+}
 
-const ResponsiveNav = () => {
-  const location = useLocation();
-  const pathname = location.pathname;
+const ResponsiveNav = ({ isCollapsed, onToggle }: ResponsiveNavProps) => {
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const { logout } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const handleLogout = async () => {
-    await supabase.auth.signOut();
-    navigate("/");
+    await logout();
+    navigate('/login');
+  };
+
+  const navItems = [
+    { href: '/home', label: 'Início', icon: Home },
+    { href: '/upload', label: 'Nova Simulação', icon: Upload },
+  ];
+
+  const NavLink = ({ href, label, icon: Icon }: { href: string; label: string; icon: React.ElementType }) => {
+    const isActive = location.pathname === href;
+    return (
+      <Link
+        to={href}
+        title={label}
+        className={cn(
+          'flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary',
+          isActive && 'bg-muted text-primary',
+          isCollapsed && 'justify-center'
+        )}
+      >
+        <Icon className="h-5 w-5 flex-shrink-0" />
+        <span className={cn('truncate', isCollapsed && 'hidden')}>{label}</span>
+      </Link>
+    );
   };
 
   return (
     <>
-      {/* Mobile Bottom Nav */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-background border-t z-40">
-        <div className="flex justify-around items-center h-16">
-          {navItems.map((item) => {
-            const isActive = pathname === item.href;
-            return (
-              <Link
-                key={item.href}
-                to={item.href}
-                className={cn(
-                  "flex flex-col items-center justify-center gap-1 text-muted-foreground w-full h-full transition-colors px-2",
-                  // Active: use brand primary colors; Hover: lighter primary
-                  isActive
-                    ? "text-primary bg-primary/10" // active text and subtle bg
-                    : "hover:bg-primary/10 hover:text-primary"
-                )}
-              >
-                <item.icon className="h-6 w-6" />
-                <span className="text-xs font-medium">{item.label}</span>
-              </Link>
-            );
-          })}
+      {/* Mobile Header */}
+      <header className="md:hidden flex items-center justify-between p-4 border-b bg-background sticky top-0 z-10">
+        <Link to="/home" className="flex items-center gap-2">
+          <img src="/logo.png" alt="Dentix Logo" className="h-8 w-auto" />
+        </Link>
+        <Button variant="ghost" size="icon" onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}>
+          {isMobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+        </Button>
+      </header>
+
+      {/* Mobile Menu (Overlay) */}
+      {isMobileMenuOpen && (
+        <div className="md:hidden fixed inset-0 bg-background z-20 p-4">
+          <div className="flex justify-between items-center mb-8">
+            <Link to="/home" className="flex items-center gap-2">
+              <img src="/logo.png" alt="Dentix Logo" className="h-8 w-auto" />
+            </Link>
+            <Button variant="ghost" size="icon" onClick={() => setIsMobileMenuOpen(false)}>
+              <X className="h-6 w-6" />
+            </Button>
+          </div>
+          <nav className="flex flex-col gap-2">
+            {navItems.map((item) => (
+              <NavLink key={item.href} {...item} />
+            ))}
+          </nav>
+          <div className="absolute bottom-4 left-4 right-4">
+            <Button variant="ghost" className="w-full justify-start gap-3" onClick={handleLogout}>
+              <LogOut className="h-5 w-5" />
+              <span>Sair</span>
+            </Button>
+          </div>
         </div>
-      </nav>
+      )}
 
       {/* Desktop Sidebar */}
-      <nav className="hidden md:flex flex-col w-64 border-r bg-background p-4 fixed h-full">
-        <div className="mb-8">
+      <nav className={cn(
+        "hidden md:flex flex-col border-r bg-background p-4 fixed h-full transition-all duration-300",
+        isCollapsed ? "w-20" : "w-64"
+      )}>
+        <div className={cn("mb-8 flex", isCollapsed ? "justify-center" : "justify-start")}>
           <Link to="/home" className="flex items-center gap-2">
             <img src="/logo.png" alt="Dentix Logo" className="h-10 w-auto" />
           </Link>
         </div>
-        <div className="flex flex-col gap-2 flex-1">
-          {navItems.map((item) => {
-            const isActive = pathname === item.href;
-            return (
-              <Button
-                key={item.href}
-                variant="ghost"
-                className={cn(
-                  "justify-start w-full text-left",
-                  // Active uses brand primary background and foreground; hover uses lighter primary
-                  isActive
-                    ? "bg-primary text-primary-foreground hover:bg-primary"
-                    : "hover:bg-primary/10 hover:text-primary"
-                )}
-                asChild
-              >
-                <Link to={item.href} className="w-full flex items-center">
-                  <item.icon className="mr-2 h-5 w-5" />
-                  {item.label}
-                </Link>
-              </Button>
-            );
-          })}
+        
+        <div className="flex-1 flex flex-col gap-2">
+          {navItems.map((item) => (
+            <NavLink key={item.href} {...item} />
+          ))}
         </div>
-        <div>
-          <Button
-            variant="ghost"
-            className="w-full justify-start hover:bg-primary/10 hover:text-primary"
+
+        <div className="mt-auto flex flex-col gap-2">
+          <Button 
+            variant="ghost" 
+            className={cn("w-full justify-start gap-3", isCollapsed && "justify-center")} 
             onClick={handleLogout}
+            title="Sair"
           >
-            <LogOut className="mr-2 h-5 w-5" />
-            Sair
+            <LogOut className="h-5 w-5 flex-shrink-0" />
+            <span className={cn(isCollapsed && "hidden")}>Sair</span>
+          </Button>
+          <Button 
+            variant="outline" 
+            size="icon" 
+            className="self-center" 
+            onClick={onToggle}
+            title={isCollapsed ? "Expandir" : "Retrair"}
+          >
+            {isCollapsed ? <ChevronsRight className="h-5 w-5" /> : <ChevronsLeft className="h-5 w-5" />}
           </Button>
         </div>
       </nav>

@@ -1,63 +1,65 @@
-import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import NotFound from "./pages/NotFound";
-import Login from "./pages/Login";
-import SignUp from "./pages/SignUp";
-import Home from "./pages/Home";
-import Upload from "./pages/Upload";
-import SelectProcedure from "./pages/SelectProcedure";
-import Processing from "./pages/Processing";
-import Result from "./pages/Result";
-import { AuthProvider } from "./contexts/AuthContext";
-import ProtectedRoute from "./components/ProtectedRoute";
-import Layout from "./components/Layout";
-import Simulations from "./pages/Simulations";
-import Profile from "./pages/Profile";
-import GuestRoute from "./components/GuestRoute";
-import ForgotPassword from "./pages/ForgotPassword";
-import UpdatePassword from "./pages/UpdatePassword";
+import { useState } from 'react';
+import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
+import ResponsiveNav from './components/ResponsiveNav';
+import Home from './pages/Home';
+import Upload from './pages/Upload';
+import SelectProcedure from './pages/SelectProcedure';
+import SimulationResult from './pages/SimulationResult';
+import Login from './pages/Login';
+import AuthProvider, { useAuth } from './contexts/AuthContext';
+import { Toaster } from "@/components/ui/toaster"
+import { cn } from './lib/utils';
 
-const queryClient = new QueryClient();
+const PrivateRoute = ({ children }: { children: JSX.Element }) => {
+  const { user, loading } = useAuth();
+  if (loading) {
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <div>Carregando...</div>
+      </div>
+    );
+  }
+  return user ? children : <Navigate to="/login" />;
+};
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <AuthProvider>
-          <Routes>
-            <Route element={<GuestRoute />}>
-              <Route path="/" element={<Login />} />
-              <Route path="/signup" element={<SignUp />} />
-              <Route path="/forgot-password" element={<ForgotPassword />} />
-            </Route>
-            
-            <Route path="/update-password" element={<UpdatePassword />} />
+function App() {
+  const [isSidebarCollapsed, setSidebarCollapsed] = useState(false);
 
-            <Route element={<ProtectedRoute />}>
-              {/* Rotas com o cabeçalho */}
-              <Route element={<Layout />}>
-                <Route path="/home" element={<Home />} />
-                <Route path="/upload" element={<Upload />} />
-                <Route path="/select-procedure" element={<SelectProcedure />} />
-                <Route path="/simulations" element={<Simulations />} />
-                <Route path="/profile" element={<Profile />} />
-              </Route>
-              {/* Rotas de tela cheia sem o cabeçalho */}
-              <Route path="/processing" element={<Processing />} />
-              <Route path="/result" element={<Result />} />
-            </Route>
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </AuthProvider>
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
-);
+  return (
+    <Router>
+      <AuthProvider>
+        <Toaster />
+        <Routes>
+          <Route path="/login" element={<Login />} />
+          <Route
+            path="/*"
+            element={
+              <PrivateRoute>
+                <div className="flex min-h-screen bg-muted/40">
+                  <ResponsiveNav 
+                    isCollapsed={isSidebarCollapsed} 
+                    onToggle={() => setSidebarCollapsed(prev => !prev)} 
+                  />
+                  <main className={cn(
+                    "flex-1 p-4 sm:p-6 md:p-8 transition-all duration-300",
+                    isSidebarCollapsed ? 'md:ml-20' : 'md:ml-64'
+                  )}>
+                    <Routes>
+                      <Route path="/home" element={<Home />} />
+                      <Route path="/upload" element={<Upload />} />
+                      <Route path="/select-procedure" element={<SelectProcedure />} />
+                      <Route path="/simulation-result" element={<SimulationResult />} />
+                      <Route path="/" element={<Navigate to="/home" />} />
+                    </Routes>
+                  </main>
+                </div>
+              </PrivateRoute>
+            }
+          />
+        </Routes>
+      </AuthProvider>
+    </Router>
+  );
+}
 
 export default App;
