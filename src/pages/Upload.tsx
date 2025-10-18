@@ -95,7 +95,6 @@ const Upload = () => {
         </div>
 
         <div className="mt-8 text-center">
-          <h2 className="text-xl font-semibold mb-4">Selecione a Cor VITA (Opcional)</h2>
           <div className="flex justify-center">
             <div className="bg-white p-4 rounded-lg border shadow-sm inline-block">
               {loadingColors ? (
