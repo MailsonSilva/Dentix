@@ -14,11 +14,12 @@ import Profile from './pages/Profile';
 import Processing from './pages/Processing';
 import NotFound from './pages/NotFound';
 import { AuthProvider } from './contexts/AuthContext';
-import { Toaster } from "@/components/ui/toaster";
+import { Toaster } from "@/components/ui/sonner";
 import { cn } from './lib/utils';
 import ProtectedRoute from './components/ProtectedRoute';
 import GuestRoute from './components/GuestRoute';
 import BottomNavBar from './components/BottomNavBar';
+import ApprovalGate from './components/ApprovalGate';
 
 const ProtectedLayout = () => {
   const [isSidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -32,7 +33,9 @@ const ProtectedLayout = () => {
         "flex-1 p-4 sm:p-6 md:p-8 transition-all duration-300 overflow-y-auto pb-20 md:pb-8",
         isSidebarCollapsed ? 'md:ml-20' : 'md:ml-64'
       )}>
-        <Outlet />
+        <ApprovalGate>
+          <Outlet />
+        </ApprovalGate>
       </main>
       <BottomNavBar />
     </div>
