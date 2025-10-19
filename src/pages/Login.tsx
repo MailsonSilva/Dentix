@@ -77,12 +77,20 @@ const Login = () => {
         showSuccess("Login realizado com sucesso!");
         navigate("/home");
       } else {
+        // Apenas exibe o diálogo, não desconecta ainda
         setShowApprovalDialog(true);
-        await supabase.auth.signOut();
       }
     }
     
     setSubmitting(false);
+  };
+
+  const handleDialogChange = (open: boolean) => {
+    setShowApprovalDialog(open);
+    if (!open) {
+      // Desconecta o usuário QUANDO o diálogo for fechado
+      supabase.auth.signOut();
+    }
   };
 
   return (
@@ -151,7 +159,7 @@ const Login = () => {
         </Card>
       </div>
 
-      <AlertDialog open={showApprovalDialog} onOpenChange={setShowApprovalDialog}>
+      <AlertDialog open={showApprovalDialog} onOpenChange={handleDialogChange}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Acesso Pendente</AlertDialogTitle>
@@ -162,7 +170,7 @@ const Login = () => {
           <AlertDialogFooter>
             <AlertDialogCancel>Fechar</AlertDialogCancel>
             <AlertDialogAction asChild>
-              <a href="https://wa.me/5598933005102?text=Quero%20meu%20acesso%20de%207%20dias." target="_blank" rel="noopener noreferrer">
+              <a href="https://wa.me/5598933005102?text=Quero%20meu%2C%20acesso%20de%207%20dias." target="_blank" rel="noopener noreferrer">
                 Liberar Acesso
               </a>
             </AlertDialogAction>
