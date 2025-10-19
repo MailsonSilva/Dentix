@@ -3,7 +3,7 @@ import { Navigate, Outlet } from 'react-router-dom';
 import { Loader2 } from 'lucide-react';
 
 const ProtectedRoute = () => {
-  const { user, loading } = useAuth();
+  const { user, profile, loading } = useAuth();
 
   if (loading) {
     return (
@@ -13,7 +13,7 @@ const ProtectedRoute = () => {
     );
   }
 
-  return user ? <Outlet /> : <Navigate to="/" replace />;
+  return user && profile?.ativo ? <Outlet /> : <Navigate to="/" replace />;
 };
 
 export default ProtectedRoute;

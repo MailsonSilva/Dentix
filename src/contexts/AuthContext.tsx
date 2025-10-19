@@ -12,6 +12,7 @@ interface Profile {
   cpf_cnpj: string | null;
   logo_url: string | null;
   atualizado_em: string | null;
+  ativo: boolean;
 }
 
 // Define um tipo para as cores Vita
@@ -166,6 +167,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       // Now subscribe to auth state changes
       const { data } = supabase.auth.onAuthStateChange(async (_event, newSession) => {
         if (!isMounted) return;
+        setLoading(true);
         setSession(newSession ?? null);
         setUser(newSession?.user ?? null);
 
@@ -174,6 +176,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         } else {
           setProfile(null);
         }
+        setLoading(false);
       });
 
       return data.subscription;

@@ -3,7 +3,7 @@ import { Navigate, Outlet } from 'react-router-dom';
 import { Loader2 } from 'lucide-react';
 
 const GuestRoute = () => {
-  const { user, loading } = useAuth();
+  const { user, profile, loading } = useAuth();
 
   if (loading) {
     return (
@@ -13,7 +13,7 @@ const GuestRoute = () => {
     );
   }
 
-  return user ? <Navigate to="/home" replace /> : <Outlet />;
+  return user && profile?.ativo ? <Navigate to="/home" replace /> : <Outlet />;
 };
 
 export default GuestRoute;
