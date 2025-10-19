@@ -36,21 +36,43 @@ const Login = () => {
     e.preventDefault();
     setSubmitting(true);
 
-    const { error } = await supabase.auth.signInWithPassword({
+    const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
 
-    setSubmitting(false);
-
-    if (error) {
-      const friendly = translateSupabaseError(error.message ?? "");
+    if (authError) {
+      const friendly = translateSupabaseError(authError.message ?? "");
       showError(friendly);
+      setSubmitting(false);
       return;
     }
 
-    showSuccess("Login realizado com sucesso!");
-    navigate("/home");
+    if (authData.user) {
+      // Check if the user is active in the public.usuarios table
+      const { data: profileData, error: profileError } = await supabase
+        .from("usuarios")
+        .select("ativo")
+        .eq("id", authData.user.id)
+        .single();
+
+      if (profileError || !profileData) {
+        showError("Não foi possível verificar o status da sua conta.");
+        await supabase.auth.signOut(); // Sign out the user
+        setSubmitting(false);
+        return;
+      }
+
+      if (profileData.ativo) {
+        showSuccess("Login realizado com sucesso!");
+        navigate("/home");
+      } else {
+        showError("Sua conta está pendente de aprovação. Entre em contato com o suporte.");
+        await supabase.auth.signOut(); // Sign out the user
+      }
+    }
+    
+    setSubmitting(false);
   };
 
   return (
