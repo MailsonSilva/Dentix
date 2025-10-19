@@ -71,7 +71,7 @@ const Processing = () => {
         if (simulatedImageUrl && simulatedImageUrl.length > 100) {
           navigate("/simulation-result", {
             state: {
-              originalImage: imagePreview,
+              originalImage: base64Image,
               simulatedImage: simulatedImageUrl,
               procedureId: procedureId,
             },
