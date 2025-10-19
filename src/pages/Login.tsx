@@ -6,6 +6,16 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { showError, showSuccess } from "@/utils/toast";
 import { Loader2, Eye, EyeOff } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const translateSupabaseError = (message: string) => {
   const m = message.toLowerCase();
@@ -31,6 +41,7 @@ const Login = () => {
   const [password, setPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [showApprovalDialog, setShowApprovalDialog] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -49,7 +60,6 @@ const Login = () => {
     }
 
     if (authData.user) {
-      // Check if the user is active in the public.usuarios table
       const { data: profileData, error: profileError } = await supabase
         .from("usuarios")
         .select("ativo")
@@ -58,7 +68,7 @@ const Login = () => {
 
       if (profileError || !profileData) {
         showError("Não foi possível verificar o status da sua conta.");
-        await supabase.auth.signOut(); // Sign out the user
+        await supabase.auth.signOut();
         setSubmitting(false);
         return;
       }
@@ -67,8 +77,8 @@ const Login = () => {
         showSuccess("Login realizado com sucesso!");
         navigate("/home");
       } else {
-        showError("Sua conta está pendente de aprovação. Entre em contato com o suporte.");
-        await supabase.auth.signOut(); // Sign out the user
+        setShowApprovalDialog(true);
+        await supabase.auth.signOut();
       }
     }
     
@@ -76,69 +86,90 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-[100dvh] flex items-center justify-center bg-background p-4">
-      <Card className="w-full max-w-sm">
-        <CardHeader className="text-center space-y-4">
-          <img src="/logo.png" alt="Dentix Logo" className="w-40 mx-auto" />
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-muted-foreground mb-1">
-                Seu e-mail
-              </label>
-              <Input
-                type="email"
-                placeholder="seu@email.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-muted-foreground mb-1">
-                Sua senha
-              </label>
-              <div className="relative">
+    <>
+      <div className="min-h-[100dvh] flex items-center justify-center bg-background p-4">
+        <Card className="w-full max-w-sm">
+          <CardHeader className="text-center space-y-4">
+            <img src="/logo.png" alt="Dentix Logo" className="w-40 mx-auto" />
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-muted-foreground mb-1">
+                  Seu e-mail
+                </label>
                 <Input
-                  type={showPassword ? "text" : "password"}
-                  placeholder="Sua senha"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  type="email"
+                  placeholder="seu@email.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
                   required
-                  className="pr-10"
                 />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute inset-y-0 right-0 flex items-center pr-3 text-muted-foreground hover:text-foreground"
-                >
-                  {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-                </button>
               </div>
+
+              <div>
+                <label className="block text-sm font-medium text-muted-foreground mb-1">
+                  Sua senha
+                </label>
+                <div className="relative">
+                  <Input
+                    type={showPassword ? "text" : "password"}
+                    placeholder="Sua senha"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    className="pr-10"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute inset-y-0 right-0 flex items-center pr-3 text-muted-foreground hover:text-foreground"
+                  >
+                    {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                  </button>
+                </div>
+              </div>
+
+              <Button type="submit" className="w-full" disabled={submitting}>
+                {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Entrar
+              </Button>
+            </form>
+
+            <div className="mt-4 text-center text-sm">
+              Não tem uma conta?{" "}
+              <a href="/signup" className="underline">
+                Cadastre-se
+              </a>
             </div>
+            <div className="mt-2 text-center text-sm">
+              <a href="/forgot-password" className="underline text-muted-foreground hover:text-foreground">
+                Esqueceu a senha?
+              </a>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
 
-            <Button type="submit" className="w-full" disabled={submitting}>
-              {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Entrar
-            </Button>
-          </form>
-
-          <div className="mt-4 text-center text-sm">
-            Não tem uma conta?{" "}
-            <a href="/signup" className="underline">
-              Cadastre-se
-            </a>
-          </div>
-          <div className="mt-2 text-center text-sm">
-            <a href="/forgot-password" className="underline text-muted-foreground hover:text-foreground">
-              Esqueceu a senha?
-            </a>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
+      <AlertDialog open={showApprovalDialog} onOpenChange={setShowApprovalDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Acesso Pendente</AlertDialogTitle>
+            <AlertDialogDescription>
+              Sua conta foi criada e está aguardando aprovação. Para agilizar a liberação do seu acesso, entre em contato conosco.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Fechar</AlertDialogCancel>
+            <AlertDialogAction asChild>
+              <a href="https://wa.me/5598933005102?text=Quero%20meu%20acesso%20de%207%20dias." target="_blank" rel="noopener noreferrer">
+                Solicitar Liberação
+              </a>
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 };
 
