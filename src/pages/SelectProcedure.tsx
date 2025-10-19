@@ -84,15 +84,15 @@ const SelectProcedure = () => {
   };
 
   return (
-    <div className="container mx-auto p-4 flex flex-col h-full justify-center items-center">
+    <div className="container mx-auto p-4 flex flex-col items-center">
       <div className="text-center my-8">
         <h1 className="text-3xl font-bold">Selecione o Procedimento</h1>
         <p className="text-muted-foreground">Escolha um dos procedimentos abaixo para iniciar a simulação.</p>
       </div>
 
-      <div className="overflow-y-auto px-4">
+      <div className="px-4">
         {loading ? (
-          <div className="flex justify-center items-center h-full">
+          <div className="flex justify-center items-center">
             <Loader2 className="h-8 w-8 animate-spin" />
           </div>
         ) : (
