@@ -163,7 +163,7 @@ const Login = () => {
             <AlertDialogCancel>Fechar</AlertDialogCancel>
             <AlertDialogAction asChild>
               <a href="https://wa.me/5598933005102?text=Quero%20meu%20acesso%20de%207%20dias." target="_blank" rel="noopener noreferrer">
-                Solicitar Liberação
+                Liberar Acesso
               </a>
             </AlertDialogAction>
           </AlertDialogFooter>
