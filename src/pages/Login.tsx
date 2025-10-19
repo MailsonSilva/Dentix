@@ -66,19 +66,20 @@ const Login = () => {
         .eq("id", authData.user.id)
         .single();
 
-      if (profileError || !profileData) {
-        showError("Não foi possível verificar o status da sua conta.");
-        await supabase.auth.signOut();
-        setSubmitting(false);
-        return;
-      }
-
-      if (profileData.ativo) {
+      // Case 1: Profile exists and is active
+      if (profileData && profileData.ativo) {
         showSuccess("Login realizado com sucesso!");
         navigate("/home");
-      } else {
-        // Apenas exibe o diálogo, não desconecta ainda
+      }
+      // Case 2: Profile exists and is NOT active, OR profile does not exist yet (PGRST116: No rows found)
+      else if ((profileData && !profileData.ativo) || (profileError && profileError.code === 'PGRST116')) {
         setShowApprovalDialog(true);
+      }
+      // Case 3: Some other database error occurred
+      else {
+        console.error("Profile fetch error:", profileError);
+        showError("Não foi possível verificar o status da sua conta.");
+        await supabase.auth.signOut();
       }
     }
     
