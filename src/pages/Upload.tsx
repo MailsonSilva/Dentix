@@ -114,9 +114,9 @@ const Upload = () => {
                 <button
                   key={color.id}
                   title={color.nome}
-                  onClick={() => setSelectedVitaColor(color.nome)}
+                  onClick={() => setSelectedVitaColor(color.hexadecimal)}
                   className={`flex-shrink-0 w-10 h-10 rounded-full border-2 shadow-sm transition-all transform hover:scale-110 focus:outline-none 
-                    ${selectedVitaColor === color.nome 
+                    ${selectedVitaColor === color.hexadecimal 
                       ? 'ring-2 ring-offset-2 ring-blue-500 scale-110' 
                       : 'border-gray-200'
                     }`}
