@@ -25,94 +25,92 @@ const Processing = () => {
       return;
     }
 
-    const processImage = async () => {
-      try {
-        const base64Image = await toBase64(imageFile);
+    const processImageWithRetries = async () => {
+      const MAX_RETRIES = 3;
+      const RETRY_DELAY = 2000; // 2 segundos de espera entre tentativas
 
-        const webhookUrl = import.meta.env.VITE_N8N_WEBHOOK_URL;
-        if (!webhookUrl) {
-          throw new Error(
-            "VITE_N8N_WEBHOOK_URL não encontrada. Verifique as variáveis de ambiente.",
-          );
-        }
+      for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+        try {
+          const base64Image = await toBase64(imageFile);
 
-        const urlWithParams = new URL(webhookUrl);
-        urlWithParams.searchParams.append("procedure", procedureName);
+          const webhookUrl = import.meta.env.VITE_N8N_WEBHOOK_URL;
+          if (!webhookUrl) {
+            throw new Error(
+              "VITE_N8N_WEBHOOK_URL não encontrada. Verifique as variáveis de ambiente.",
+            );
+          }
 
-        const payload: { imageData: string; vitacor?: string } = {
-          imageData: base64Image,
-        };
-        if (vitaColor) {
-          payload.vitacor = vitaColor;
-        }
+          const urlWithParams = new URL(webhookUrl);
+          urlWithParams.searchParams.append("procedure", procedureName);
 
-        const response = await axios.post(
-          urlWithParams.toString(),
-          payload,
-          {
-            headers: { "Content-Type": "application/json" },
-            responseType: 'blob',
-            timeout: 60000,
-          },
-        );
+          const payload: { imageData: string; vitacor?: string } = {
+            imageData: base64Image,
+          };
+          if (vitaColor) {
+            payload.vitacor = vitaColor;
+          }
 
-        const responseBlob = response.data;
-        if (!(responseBlob instanceof Blob) || responseBlob.size === 0) {
-          throw new Error("A resposta do servidor não continha uma imagem válida.");
-        }
-
-        const simulatedImageUrl = await new Promise<string>((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onloadend = () => resolve(reader.result as string);
-          reader.onerror = reject;
-          reader.readAsDataURL(responseBlob);
-        });
-
-        if (simulatedImageUrl && simulatedImageUrl.length > 100) {
-          navigate("/simulation-result", {
-            state: {
-              originalImage: base64Image,
-              simulatedImage: simulatedImageUrl,
-              procedureId: procedureId,
+          const response = await axios.post(
+            urlWithParams.toString(),
+            payload,
+            {
+              headers: { "Content-Type": "application/json" },
+              responseType: 'blob',
+              timeout: 60000, // Timeout de 60 segundos
             },
-          });
-        } else {
-          throw new Error("A resposta do servidor não pôde ser convertida para uma imagem válida.");
-        }
-      } catch (error) {
-        console.error("--- ERRO AO PROCESSAR A IMAGEM ---");
-        if (axios.isAxiosError(error) && error.response) {
-          console.error("Mensagem de erro:", error.message);
-          console.error("Status do erro:", error.response.status);
+          );
 
-          // Try to read the blob response as text for better debugging
-          if (error.response.data instanceof Blob) {
-            const errorText = await error.response.data.text();
-            console.error("Dados da resposta (Texto):", errorText);
-            try {
-              // Try to parse as JSON to see if it's a structured error
-              const errorJson = JSON.parse(errorText);
-              console.error("Dados da resposta (JSON):", errorJson);
-              showError(errorJson.message || "Falha na simulação. Verifique o console.");
-            } catch (e) {
-              // If not JSON, it might be plain text or HTML from the server
-              showError("Falha na simulação. Verifique o console para detalhes.");
+          const responseBlob = response.data;
+          if (!(responseBlob instanceof Blob) || responseBlob.size === 0) {
+            throw new Error("A resposta do servidor não continha uma imagem válida.");
+          }
+
+          const simulatedImageUrl = await new Promise<string>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve(reader.result as string);
+            reader.onerror = reject;
+            reader.readAsDataURL(responseBlob);
+          });
+
+          if (simulatedImageUrl && simulatedImageUrl.length > 100) {
+            navigate("/simulation-result", {
+              state: {
+                originalImage: base64Image,
+                simulatedImage: simulatedImageUrl,
+                procedureId: procedureId,
+              },
+            });
+            return; // Sucesso, sai da função
+          } else {
+            throw new Error("A resposta do servidor não pôde ser convertida para uma imagem válida.");
+          }
+        } catch (error) {
+          console.error(`--- TENTATIVA ${attempt} DE ${MAX_RETRIES} FALHOU ---`);
+          if (axios.isAxiosError(error) && error.response) {
+            console.error("Mensagem de erro:", error.message);
+            console.error("Status do erro:", error.response.status);
+            if (error.response.data instanceof Blob) {
+              const errorText = await error.response.data.text();
+              console.error("Dados da resposta (Texto):", errorText);
             }
           } else {
-            console.error("Dados da resposta:", error.response.data);
-            showError("Falha na simulação. Verifique o console para detalhes.");
+            console.error("Erro não relacionado ao Axios:", error);
           }
-        } else {
-          console.error("Erro não relacionado ao Axios:", error);
-          showError("Ocorreu um erro inesperado. Verifique o console.");
-        }
-        console.error("------------------------------------");
+          console.error("------------------------------------");
 
-        navigate("/select-procedure", { state: { imageFile, imagePreview } });
+          if (attempt === MAX_RETRIES) {
+            // Se for a última tentativa, mostra o erro e redireciona
+            showError("A simulação falhou após várias tentativas. Por favor, tente novamente.");
+            navigate("/select-procedure", { state: { imageFile, imagePreview } });
+          } else {
+            // Espera antes de tentar novamente
+            await new Promise(resolve => setTimeout(resolve, RETRY_DELAY));
+          }
+        }
       }
     };
 
-    processImage();
+    processImageWithRetries();
   }, [imageFile, procedureName, imagePreview, navigate, procedureId, vitaColor]);
 
   return (
