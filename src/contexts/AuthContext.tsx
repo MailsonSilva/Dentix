@@ -152,42 +152,26 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       }
     };
 
-    // 1. Inicialização da sessão
-    const initializeSession = async () => {
-      setLoading(true);
-      try {
-        const { data: { session: initialSession } } = await supabase.auth.getSession();
-        if (isMounted) {
-          await handleAuthChange(initialSession);
-        }
-      } catch (e) {
-        console.error('Error initializing session:', e);
-        if (isMounted) {
-          setSession(null);
-          setUser(null);
-          setProfile(null);
-          setLoading(false);
-        }
-      }
-    };
-
-    initializeSession();
-
-    // 2. Listener para mudanças de autenticação
+    // 1. Listener para mudanças de autenticação, incluindo INITIAL_SESSION
     const { data: listenerData } = supabase.auth.onAuthStateChange(async (event, newSession) => {
       if (!isMounted) return;
       
       console.log('Auth State Change Event:', event);
       
-      // Se o evento for SIGNED_IN ou SIGNED_OUT, redefinimos o loading para true
-      // para garantir que o perfil seja carregado antes de renderizar o conteúdo.
-      if (event === 'SIGNED_IN' || event === 'SIGNED_OUT') {
+      // Se for um evento de mudança de estado (incluindo a inicialização), definimos loading como true
+      // para garantir que os componentes esperem a resolução do perfil.
+      if (event === 'SIGNED_IN' || event === 'SIGNED_OUT' || event === 'INITIAL_SESSION') {
         setLoading(true);
       }
       
-      // Para INITIAL_SESSION, não precisamos redefinir loading, pois initializeSession já fez isso.
-      if (event !== 'INITIAL_SESSION') {
+      // Usamos try/catch aqui para garantir que setLoading(false) seja chamado
+      try {
         await handleAuthChange(newSession);
+      } catch (e) {
+        console.error('Error during auth state change processing:', e);
+        if (isMounted) {
+          setLoading(false); // Fallback para garantir que o carregamento termine
+        }
       }
     });
 
