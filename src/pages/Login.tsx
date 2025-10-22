@@ -45,6 +45,35 @@ const translateSupabaseError = (message: string) => {
   return "Ocorreu um erro ao tentar fazer login. Tente novamente.";
 };
 
+const trySetClientSession = async (session: any) => {
+  if (!session) return false;
+  try {
+    // If session contains access_token / refresh_token, set it explicitly on client
+    const access_token = (session as any).access_token ?? (session as any).accessToken ?? null;
+    const refresh_token = (session as any).refresh_token ?? (session as any).refreshToken ?? null;
+
+    if (access_token && refresh_token) {
+      // setSession accepts { access_token, refresh_token }
+      const { error } = await supabase.auth.setSession({
+        access_token,
+        refresh_token,
+      });
+      if (error) {
+        console.warn("supabase.auth.setSession returned error:", error);
+        return false;
+      }
+      console.info("Client session set via supabase.auth.setSession");
+      return true;
+    } else {
+      console.warn("Session object lacked tokens to set on client:", session);
+      return false;
+    }
+  } catch (err) {
+    console.error("Error while trying to set client session:", err);
+    return false;
+  }
+};
+
 const Login = () => {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
@@ -54,8 +83,6 @@ const Login = () => {
 
   const handleSuccessfulLogin = () => {
     // Hard redirect to ensure AuthProvider initializes and picks up the session.
-    // Using assign ensures a full reload (not client-only navigation) so the
-    // provider's initial getSession will see the stored session.
     window.location.assign("/home");
   };
 
@@ -64,6 +91,7 @@ const Login = () => {
     setSubmitting(true);
 
     try {
+      console.info("Attempting signInWithPassword for", email);
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -77,9 +105,15 @@ const Login = () => {
         return;
       }
 
-      // If signInWithPassword returned a session, do a hard redirect so the AuthProvider picks it up.
+      console.info("signInWithPassword result:", data);
+
+      // If signInWithPassword returned a session, try to set it explicitly on the client and redirect.
       if (data?.session) {
+        const setOk = await trySetClientSession(data.session);
         showSuccess("Login realizado com sucesso!");
+        if (!setOk) {
+          console.warn("Could not set session explicitly; still attempting hard redirect.");
+        }
         handleSuccessfulLogin();
         return;
       }
@@ -90,7 +124,12 @@ const Login = () => {
 
       if (session) {
         console.info("Login: session found after polling.", session);
+        // Attempt to explicitly set client session in case persistence didn't happen automatically
+        const setOk = await trySetClientSession(session);
         showSuccess("Login realizado com sucesso!");
+        if (!setOk) {
+          console.warn("Polling found session but client setSession failed; redirecting anyway.");
+        }
         handleSuccessfulLogin();
       } else {
         console.error("Login attempt did not produce a session. signIn response:", data);
