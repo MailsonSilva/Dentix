@@ -3,7 +3,7 @@ import { Navigate, Outlet } from 'react-router-dom';
 import { Loader2 } from 'lucide-react';
 
 const GuestRoute = () => {
-  const { user, profile, loading } = useAuth();
+  const { user, loading } = useAuth();
 
   if (loading) {
     return (
@@ -13,7 +13,9 @@ const GuestRoute = () => {
     );
   }
 
-  return user && profile?.ativo ? <Navigate to="/home" replace /> : <Outlet />;
+  // Se o usuário estiver logado, ele deve ser redirecionado para a rota protegida (/home).
+  // A verificação de 'ativo' será feita dentro do ProtectedLayout (ApprovalGate).
+  return user ? <Navigate to="/home" replace /> : <Outlet />;
 };
 
 export default GuestRoute;

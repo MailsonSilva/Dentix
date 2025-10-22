@@ -32,8 +32,9 @@ const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
 
   const handleSuccessfulLogin = () => {
-    // Hard redirect to ensure AuthProvider initializes and picks up the session.
-    window.location.assign("/home");
+    // Usamos navigate para manter o fluxo dentro do React Router.
+    // O AuthContext deve ser rápido o suficiente para carregar o perfil.
+    navigate("/home");
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
