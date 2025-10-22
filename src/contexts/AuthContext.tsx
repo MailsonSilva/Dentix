@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useRef, useState } from 'react';
+import { createContext, useContext, useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Session, User } from '@supabase/supabase-js';
 
@@ -32,7 +32,7 @@ interface AuthContextType {
   session: Session | null;
   user: User | null;
   profile: Profile | null;
-  loading: boolean;
+  loading: boolean; // Indica se a sessão E o perfil foram carregados
   vitaColors: VitaColor[];
   loadingVitaColors: boolean;
   procedures: Procedure[];
@@ -56,7 +56,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(true); // Estado de carregamento principal
   const [vitaColors, setVitaColors] = useState<VitaColor[]>([]);
   const [loadingVitaColors, setLoadingVitaColors] = useState(true);
   const [procedures, setProcedures] = useState<Procedure[]>([]);
@@ -133,22 +133,32 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   useEffect(() => {
     let isMounted = true;
 
+    const handleAuthChange = async (currentSession: Session | null) => {
+      setSession(currentSession);
+      const currentUser = currentSession?.user ?? null;
+      setUser(currentUser);
+      
+      let profileData: Profile | null = null;
+
+      if (currentUser) {
+        // Se houver usuário, carregamos o perfil
+        profileData = await fetchProfile(currentUser.id);
+      }
+      
+      if (isMounted) {
+        setProfile(profileData);
+        setLoading(false); // Define loading como false APENAS após a sessão e o perfil serem resolvidos
+        console.log('Auth state resolved. Loading set to false.');
+      }
+    };
+
     // 1. Inicialização da sessão
     const initializeSession = async () => {
+      setLoading(true);
       try {
         const { data: { session: initialSession } } = await supabase.auth.getSession();
-        
-        if (!isMounted) return;
-
-        setSession(initialSession);
-        const currentUser = initialSession?.user ?? null;
-        setUser(currentUser);
-
-        if (currentUser) {
-          const profileData = await fetchProfile(currentUser.id);
-          if (isMounted) setProfile(profileData);
-        } else {
-          if (isMounted) setProfile(null);
+        if (isMounted) {
+          await handleAuthChange(initialSession);
         }
       } catch (e) {
         console.error('Error initializing session:', e);
@@ -156,11 +166,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           setSession(null);
           setUser(null);
           setProfile(null);
-        }
-      } finally {
-        if (isMounted) {
           setLoading(false);
-          console.log('AuthContext initialized. Loading set to false.');
         }
       }
     };
@@ -173,21 +179,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       
       console.log('Auth State Change Event:', event);
       
-      setSession(newSession);
-      const currentUser = newSession?.user ?? null;
-      setUser(currentUser);
-
-      if (currentUser) {
-        const profileData = await fetchProfile(currentUser.id);
-        if (isMounted) setProfile(profileData);
-      } else {
-        if (isMounted) setProfile(null);
+      // Para eventos de mudança, redefinimos o loading temporariamente se for um evento crítico
+      if (event === 'SIGNED_IN' || event === 'SIGNED_OUT' || event === 'INITIAL_SESSION') {
+        setLoading(true);
       }
       
-      // Se o evento for SIGNED_IN, garantimos que o loading seja falso
-      if (event === 'SIGNED_IN' || event === 'SIGNED_OUT') {
-        setLoading(false);
-      }
+      await handleAuthChange(newSession);
     });
 
     // Cleanup
