@@ -64,6 +64,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   // Mantém o último user id para evitar refetchs redundantes
   const prevUserIdRef = useRef<string | null>(null);
+  // Proteção temporal para evitar chamadas repetidas em curto espaço de tempo
+  const lastHandledRef = useRef<number | null>(null);
+  // Armazena a inscrição para cleanup correto
+  const authSubscriptionRef = useRef<any>(null);
 
   const logout = async () => {
     await supabase.auth.signOut();
@@ -172,43 +176,85 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     initialize();
 
-    // Listener para mudanças de autenticação; somente reage quando o user id muda
-    const { data: listenerData } = supabase.auth.onAuthStateChange(async (_event, newSession) => {
+    // Listener para mudanças de autenticação.
+    // Estratégia:
+    // - Ignorar INITIAL_SESSION (já tratado pela inicialização).
+    // - Tratar TOKEN_REFRESHED / USER_UPDATED como atualização de sessão sem refetch.
+    // - Apenas SIGNED_IN e SIGNED_OUT disparam refetch de profile.
+    const { data: listenerData } = supabase.auth.onAuthStateChange((event, newSession) => {
       if (!isMounted) return;
 
-      try {
+      // Debug log para inspecionar o que está acontecendo no reload/mobile
+      // Por favor cole esses logs se o problema persistir
+      // eslint-disable-next-line no-console
+      console.debug('[supabase auth event]', { event, prevUserId: prevUserIdRef.current, newUserId: newSession?.user?.id ?? null, time: new Date().toISOString() });
+
+      const now = Date.now();
+      const last = lastHandledRef.current ?? 0;
+      // Se estamos recebendo eventos muito rapidamente, ignoramos para evitar loops
+      if (now - last < 700) {
+        // atualiza a session local se necessário, mas evita trabalho pesado
+        if (newSession) {
+          setSession(newSession);
+          setUser(newSession.user ?? null);
+        }
+        return;
+      }
+      lastHandledRef.current = now;
+
+      if (event === 'INITIAL_SESSION') {
+        // Já tratado por getSession() na inicialização; ignorar
+        return;
+      }
+
+      // Eventos que apenas atualizam o token/usuário — NÃO refetch do perfil
+      if (event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED' || event === 'PASSWORD_RECOVERY') {
+        setSession(newSession);
+        setUser(newSession?.user ?? null);
+        return;
+      }
+
+      // Para SIGNED_IN / SIGNED_OUT, refetch de profile (mudança real de usuário)
+      if (event === 'SIGNED_IN' || event === 'SIGNED_OUT') {
         const newUserId = newSession?.user?.id ?? null;
 
-        // Se o user id não mudou, ignoramos (evita refetch ao trocar aba / refresh de token)
+        // Se o user id não mudou, atualiza sessão e segue sem refetch
         if (newUserId === prevUserIdRef.current) {
-          // Atualiza session object, mas não dispara fetch de profile nem toggle de loading
           setSession(newSession);
           setUser(newSession?.user ?? null);
           return;
         }
 
-        // Houve mudança de usuário (login/logout), atualizamos e buscamos profile
         prevUserIdRef.current = newUserId;
         setLoading(true);
-        await handleAuthState(newSession);
-      } catch (err) {
-        console.error('Error handling auth state change:', err);
-        if (isMounted) {
-          setLoading(false);
-        }
+        // não await aqui para não bloquear o listener
+        handleAuthState(newSession).catch((err) => {
+          // eslint-disable-next-line no-console
+          console.error('Error in handleAuthState from auth listener:', err);
+          if (isMounted) setLoading(false);
+        });
+        return;
       }
+
+      // Para qualquer outro evento inesperado, apenas atualize a session para manter estado consistente
+      setSession(newSession);
+      setUser(newSession?.user ?? null);
     });
+
+    // store subscription for cleanup
+    authSubscriptionRef.current = listenerData;
 
     return () => {
       isMounted = false;
       try {
-        const sub: any = listenerData;
+        const sub: any = authSubscriptionRef.current;
         if (sub?.subscription?.unsubscribe) {
           sub.subscription.unsubscribe();
         } else if (typeof sub?.unsubscribe === 'function') {
           sub.unsubscribe();
         }
       } catch (e) {
+        // eslint-disable-next-line no-console
         console.warn('Failed to cleanup auth listener:', e);
       }
     };
