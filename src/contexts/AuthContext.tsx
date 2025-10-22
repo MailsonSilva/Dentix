@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState } from 'react';
+import { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Session, User } from '@supabase/supabase-js';
 
@@ -63,6 +63,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [loadingVitaColors, setLoadingVitaColors] = useState(true);
   const [procedures, setProcedures] = useState<Procedure[]>([]);
   const [loadingProcedures, setLoadingProcedures] = useState(true);
+
+  // Ref used to ensure we only treat the very first auth event as the "initialization"
+  const initializedRef = useRef(false);
 
   const logout = async () => {
     await supabase.auth.signOut();
@@ -129,7 +132,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     fetchVitaColors();
     fetchProcedures();
 
-    // 2. Handle session initialization
+    // 2. Handle session initialization (one-time)
     const initializeSession = async () => {
       try {
         const { data: { session: initialSession } } = await supabase.auth.getSession();
@@ -147,43 +150,44 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setUser(null);
         setProfile(null);
       } finally {
+        // mark initialization as done and clear loading
+        initializedRef.current = true;
         setLoading(false);
       }
     };
 
     initializeSession();
 
-    // 3. Listen for auth state changes (make subscription extraction safe)
-    const listener = supabase.auth.onAuthStateChange(
-      async (_event, newSession) => {
-        try {
-          setSession(newSession);
-          setUser(newSession?.user ?? null);
-          if (newSession?.user) {
-            const profileData = await fetchProfile(newSession.user.id);
-            setProfile(profileData);
-          } else {
-            setProfile(null);
-          }
-        } catch (err) {
-          console.error("Error handling auth state change:", err);
-          // Ensure profile/user/session stay consistent
-        } finally {
-          // Make sure loading is cleared once we processed an auth event
+    // 3. Listen for auth state changes and only treat the first callback specially
+    const { data: listenerData } = supabase.auth.onAuthStateChange(async (event, newSession) => {
+      try {
+        // Update session and user immediately
+        setSession(newSession);
+        setUser(newSession?.user ?? null);
+
+        // If we have a user, fetch their profile
+        if (newSession?.user) {
+          const profileData = await fetchProfile(newSession.user.id);
+          setProfile(profileData);
+        } else {
+          setProfile(null);
+        }
+      } catch (err) {
+        console.error("Error handling auth state change:", err);
+      } finally {
+        // If this is the first auth callback we process, mark initialization done.
+        // Subsequent auth events shouldn't re-enable the global loading spinner.
+        if (!initializedRef.current) {
+          initializedRef.current = true;
           setLoading(false);
         }
       }
-    );
-
-    const subscription = (listener && (listener as any).data && (listener as any).data.subscription) || (listener as any)?.subscription || null;
+    });
 
     // 4. Cleanup subscription on unmount
     return () => {
-      if (subscription && typeof subscription.unsubscribe === 'function') {
-        subscription.unsubscribe();
-      } else if (listener && typeof (listener as any).unsubscribe === 'function') {
-        // fallback unsubscribe if API shape differs
-        (listener as any).unsubscribe();
+      if (listenerData && typeof (listenerData as any).subscription?.unsubscribe === 'function') {
+        (listenerData as any).subscription.unsubscribe();
       }
     };
   }, []);
