@@ -52,6 +52,13 @@ const Login = () => {
   const [submitting, setSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
+  const handleSuccessfulLogin = () => {
+    // Hard redirect to ensure AuthProvider initializes and picks up the session.
+    // Using assign ensures a full reload (not client-only navigation) so the
+    // provider's initial getSession will see the stored session.
+    window.location.assign("/home");
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
@@ -70,24 +77,22 @@ const Login = () => {
         return;
       }
 
-      // If signInWithPassword returned a session, proceed immediately
+      // If signInWithPassword returned a session, do a hard redirect so the AuthProvider picks it up.
       if (data?.session) {
         showSuccess("Login realizado com sucesso!");
-        navigate("/home");
-        setSubmitting(false);
+        handleSuccessfulLogin();
         return;
       }
 
-      // Sometimes the session is not immediately returned — poll getSession briefly
+      // Otherwise poll getSession briefly to allow auth to propagate
       console.info("Login: session not returned immediately, polling for session...");
       const session = await waitForSession(6, 300);
 
       if (session) {
         console.info("Login: session found after polling.", session);
         showSuccess("Login realizado com sucesso!");
-        navigate("/home");
+        handleSuccessfulLogin();
       } else {
-        // No session after polling: provide helpful info and log for debugging
         console.error("Login attempt did not produce a session. signIn response:", data);
         showError("Não foi possível iniciar a sessão. Verifique seu e-mail/senha ou confirme seu e-mail.");
       }
