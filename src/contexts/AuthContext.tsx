@@ -69,13 +69,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   useEffect(() => {
-    let isMounted = true;
-
-    const fetchProfile = async (userId: string | undefined) => {
-      if (!userId) {
-        if (isMounted) setProfile(null);
-        return;
-      }
+    const fetchProfile = async (userId: string | undefined): Promise<Profile | null> => {
+      if (!userId) return null;
       try {
         const { data: profileData, error } = await supabase
           .from('usuarios')
@@ -85,18 +80,16 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
         if (error && error.code !== 'PGRST116') {
           console.error('Error fetching profile:', error);
-          if (isMounted) setProfile(null);
-        } else {
-          if (isMounted) setProfile(profileData as Profile | null);
+          return null;
         }
+        return profileData as Profile | null;
       } catch (err) {
         console.error('Unexpected error fetching profile:', err);
-        if (isMounted) setProfile(null);
+        return null;
       }
     };
 
     const fetchVitaColors = async () => {
-      if (!isMounted) return;
       setLoadingVitaColors(true);
       try {
         const { data, error } = await supabase
@@ -104,19 +97,17 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           .select('id, nome, hexadecimal')
           .eq('ativo', true)
           .order('nome');
-
         if (error) throw error;
-        if (isMounted) setVitaColors(data || []);
+        setVitaColors(data || []);
       } catch (error) {
         console.error("Error fetching vita colors in context:", error);
-        if (isMounted) setVitaColors([]);
+        setVitaColors([]);
       } finally {
-        if (isMounted) setLoadingVitaColors(false);
+        setLoadingVitaColors(false);
       }
     };
 
     const fetchProcedures = async () => {
-      if (!isMounted) return;
       setLoadingProcedures(true);
       try {
         const { data, error } = await supabase
@@ -124,81 +115,62 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           .select('id, nome, descricao, webhook_valor')
           .eq('ativo', true)
           .order('nome');
-
         if (error) throw error;
-        if (isMounted) setProcedures(data || []);
+        setProcedures(data || []);
       } catch (error) {
         console.error("Error fetching procedures in context:", error);
-        if (isMounted) setProcedures([]);
+        setProcedures([]);
       } finally {
-        if (isMounted) setLoadingProcedures(false);
+        setLoadingProcedures(false);
       }
     };
 
-    // Initialize: get current session and other data
-    const init = async () => {
-      // Fetch colors and procedures as soon as the provider mounts
-      fetchVitaColors();
-      fetchProcedures();
+    // 1. Fetch static data first
+    fetchVitaColors();
+    fetchProcedures();
 
+    // 2. Handle session initialization
+    const initializeSession = async () => {
       try {
-        const {
-          data: { session: initialSession },
-        } = await supabase.auth.getSession();
-        if (!isMounted) return;
-
-        setSession(initialSession ?? null);
+        const { data: { session: initialSession } } = await supabase.auth.getSession();
+        setSession(initialSession);
         setUser(initialSession?.user ?? null);
-
         if (initialSession?.user) {
-          await fetchProfile(initialSession.user.id);
+          const profileData = await fetchProfile(initialSession.user.id);
+          setProfile(profileData);
         } else {
           setProfile(null);
         }
-      } catch (err) {
-        console.error('Error getting initial session:', err);
+      } catch (e) {
+        console.error("Error initializing session:", e);
         setSession(null);
         setUser(null);
         setProfile(null);
       } finally {
-        if (isMounted) setLoading(false);
+        setLoading(false);
       }
+    };
 
-      // Now subscribe to auth state changes
-      const { data } = supabase.auth.onAuthStateChange(async (_event, newSession) => {
-        if (!isMounted) return;
-        setLoading(true);
-        setSession(newSession ?? null);
+    initializeSession();
+
+    // 3. Listen for auth state changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (_event, newSession) => {
+        setSession(newSession);
         setUser(newSession?.user ?? null);
-
         if (newSession?.user) {
-          await fetchProfile(newSession.user.id);
+          const profileData = await fetchProfile(newSession.user.id);
+          setProfile(profileData);
         } else {
           setProfile(null);
         }
-        setLoading(false);
-      });
-
-      return data.subscription;
-    };
-
-    let subscriptionRef: { unsubscribe?: () => void } | null = null;
-
-    init().then((sub) => {
-      // keep reference to subscription so we can unsubscribe in cleanup
-      subscriptionRef = sub as any;
-    });
-
-    return () => {
-      isMounted = false;
-      try {
-        // unsubscribe if available
-        if (subscriptionRef && typeof (subscriptionRef as any).unsubscribe === 'function') {
-          (subscriptionRef as any).unsubscribe();
-        }
-      } catch (err) {
-        // ignore
+        // No longer setting the main loading state here to avoid the bug
       }
+    );
+
+    // 4. Cleanup subscription on unmount
+    return () => {
+      subscription.unsubscribe();
     };
   }, []);
 
