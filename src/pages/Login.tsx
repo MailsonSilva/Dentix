@@ -36,7 +36,7 @@ const Login = () => {
     e.preventDefault();
     setSubmitting(true);
 
-    const { error } = await supabase.auth.signInWithPassword({
+    const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
@@ -46,6 +46,13 @@ const Login = () => {
     if (error) {
       const friendly = translateSupabaseError(error.message ?? "");
       showError(friendly);
+      return;
+    }
+
+    // Ensure Supabase actually returned a session
+    if (!data || !data.session) {
+      // This can happen when email must be confirmed or other server-side conditions.
+      showError("Não foi possível iniciar a sessão. Verifique seu e-mail/senha ou confirme seu e-mail.");
       return;
     }
 
