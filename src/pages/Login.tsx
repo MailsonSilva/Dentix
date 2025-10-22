@@ -7,8 +7,29 @@ import { Input } from "@/components/ui/input";
 import { showError, showSuccess } from "@/utils/toast";
 import { Loader2, Eye, EyeOff } from "lucide-react";
 
+/**
+ * Try to get the current session from Supabase, polling a few times with small delays.
+ * Returns the session if found, or null if not.
+ */
+const waitForSession = async (retries = 6, delayMs = 300) => {
+  for (let i = 0; i < retries; i++) {
+    try {
+      const { data } = await supabase.auth.getSession();
+      if (data?.session) {
+        return data.session;
+      }
+    } catch (err) {
+      // swallow and retry
+      console.warn("getSession attempt failed:", err);
+    }
+    // wait before next attempt
+    await new Promise((res) => setTimeout(res, delayMs));
+  }
+  return null;
+};
+
 const translateSupabaseError = (message: string) => {
-  const m = message.toLowerCase();
+  const m = (message || "").toLowerCase();
   if (m.includes("email not confirmed") || m.includes("email not verified")) {
     return "E-mail não confirmado. Verifique sua caixa de entrada.";
   }
@@ -21,7 +42,6 @@ const translateSupabaseError = (message: string) => {
   if (m.includes("too many requests")) {
     return "Muitas tentativas. Aguarde e tente novamente mais tarde.";
   }
-  // mensagem padrão
   return "Ocorreu um erro ao tentar fazer login. Tente novamente.";
 };
 
@@ -36,28 +56,47 @@ const Login = () => {
     e.preventDefault();
     setSubmitting(true);
 
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
 
-    setSubmitting(false);
+      if (error) {
+        const friendly = translateSupabaseError(error.message ?? "");
+        console.error("signInWithPassword error:", error);
+        showError(friendly);
+        setSubmitting(false);
+        return;
+      }
 
-    if (error) {
-      const friendly = translateSupabaseError(error.message ?? "");
-      showError(friendly);
-      return;
+      // If signInWithPassword returned a session, proceed immediately
+      if (data?.session) {
+        showSuccess("Login realizado com sucesso!");
+        navigate("/home");
+        setSubmitting(false);
+        return;
+      }
+
+      // Sometimes the session is not immediately returned — poll getSession briefly
+      console.info("Login: session not returned immediately, polling for session...");
+      const session = await waitForSession(6, 300);
+
+      if (session) {
+        console.info("Login: session found after polling.", session);
+        showSuccess("Login realizado com sucesso!");
+        navigate("/home");
+      } else {
+        // No session after polling: provide helpful info and log for debugging
+        console.error("Login attempt did not produce a session. signIn response:", data);
+        showError("Não foi possível iniciar a sessão. Verifique seu e-mail/senha ou confirme seu e-mail.");
+      }
+    } catch (err) {
+      console.error("Unexpected login error:", err);
+      showError("Erro inesperado ao tentar fazer login. Veja o console para detalhes.");
+    } finally {
+      setSubmitting(false);
     }
-
-    // Ensure Supabase actually returned a session
-    if (!data || !data.session) {
-      // This can happen when email must be confirmed or other server-side conditions.
-      showError("Não foi possível iniciar a sessão. Verifique seu e-mail/senha ou confirme seu e-mail.");
-      return;
-    }
-
-    showSuccess("Login realizado com sucesso!");
-    navigate("/home");
   };
 
   return (
