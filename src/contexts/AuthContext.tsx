@@ -134,9 +134,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     let isMounted = true;
 
     const handleAuthChange = async (currentSession: Session | null) => {
-      setSession(currentSession);
       const currentUser = currentSession?.user ?? null;
-      setUser(currentUser);
       
       let profileData: Profile | null = null;
 
@@ -146,6 +144,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       }
       
       if (isMounted) {
+        setSession(currentSession);
+        setUser(currentUser);
         setProfile(profileData);
         setLoading(false); // Define loading como false APENAS após a sessão e o perfil serem resolvidos
         console.log('Auth state resolved. Loading set to false.');
@@ -179,12 +179,16 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       
       console.log('Auth State Change Event:', event);
       
-      // Para eventos de mudança, redefinimos o loading temporariamente se for um evento crítico
-      if (event === 'SIGNED_IN' || event === 'SIGNED_OUT' || event === 'INITIAL_SESSION') {
+      // Se o evento for SIGNED_IN ou SIGNED_OUT, redefinimos o loading para true
+      // para garantir que o perfil seja carregado antes de renderizar o conteúdo.
+      if (event === 'SIGNED_IN' || event === 'SIGNED_OUT') {
         setLoading(true);
       }
       
-      await handleAuthChange(newSession);
+      // Para INITIAL_SESSION, não precisamos redefinir loading, pois initializeSession já fez isso.
+      if (event !== 'INITIAL_SESSION') {
+        await handleAuthChange(newSession);
+      }
     });
 
     // Cleanup
