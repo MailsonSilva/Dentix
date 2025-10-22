@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState } from 'react';
+import { createContext, useContext, useEffect, useState, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Session, User } from '@supabase/supabase-js';
 
@@ -61,6 +61,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [loadingVitaColors, setLoadingVitaColors] = useState(true);
   const [procedures, setProcedures] = useState<Procedure[]>([]);
   const [loadingProcedures, setLoadingProcedures] = useState(true);
+
+  // Mantém o último user id para evitar refetchs redundantes
+  const prevUserIdRef = useRef<string | null>(null);
 
   const logout = async () => {
     await supabase.auth.signOut();
@@ -129,66 +132,87 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     fetchProcedures();
   }, []);
 
-  // Efeito principal para gerenciar a sessão e o perfil
+  // Função auxiliar para unificar atualização de estado de auth/profile
+  const handleAuthState = async (currentSession: Session | null) => {
+    const currentUser = currentSession?.user ?? null;
+    let profileData: Profile | null = null;
+
+    if (currentUser) {
+      profileData = await fetchProfile(currentUser.id);
+    }
+
+    setSession(currentSession);
+    setUser(currentUser);
+    setProfile(profileData);
+    setLoading(false);
+  };
+
+  // Efeito principal para inicializar sessão + listener (evitando loops por eventos redundantes)
   useEffect(() => {
     let isMounted = true;
+    // Inicializa a sessão uma única vez ao montar
+    const initialize = async () => {
+      try {
+        const { data } = await supabase.auth.getSession();
+        const initialSession = data?.session ?? null;
 
-    const handleAuthChange = async (currentSession: Session | null) => {
-      const currentUser = currentSession?.user ?? null;
-      
-      let profileData: Profile | null = null;
+        if (!isMounted) return;
 
-      if (currentUser) {
-        // Se houver usuário, carregamos o perfil
-        profileData = await fetchProfile(currentUser.id);
-      }
-      
-      if (isMounted) {
-        setSession(currentSession);
-        setUser(currentUser);
-        setProfile(profileData);
-        setLoading(false); // Define loading como false APENAS após a sessão e o perfil serem resolvidos
-        console.log('Auth state resolved. Loading set to false.');
+        // Guarda o id atual
+        prevUserIdRef.current = initialSession?.user?.id ?? null;
+
+        await handleAuthState(initialSession);
+      } catch (err) {
+        console.error('Error during auth initialization:', err);
+        if (isMounted) {
+          setLoading(false); // fallback para não travar a aplicação
+        }
       }
     };
 
-    // 1. Listener para mudanças de autenticação, incluindo INITIAL_SESSION
-    const { data: listenerData } = supabase.auth.onAuthStateChange(async (event, newSession) => {
+    initialize();
+
+    // Listener para mudanças de autenticação; somente reage quando o user id muda
+    const { data: listenerData } = supabase.auth.onAuthStateChange(async (_event, newSession) => {
       if (!isMounted) return;
-      
-      console.log('Auth State Change Event:', event);
-      
-      // Se for um evento de mudança de estado (incluindo a inicialização), definimos loading como true
-      // para garantir que os componentes esperem a resolução do perfil.
-      if (event === 'SIGNED_IN' || event === 'SIGNED_OUT' || event === 'INITIAL_SESSION') {
-        setLoading(true);
-      }
-      
-      // Usamos try/catch aqui para garantir que setLoading(false) seja chamado
+
       try {
-        await handleAuthChange(newSession);
-      } catch (e) {
-        console.error('Error during auth state change processing:', e);
+        const newUserId = newSession?.user?.id ?? null;
+
+        // Se o user id não mudou, ignoramos (evita refetch ao trocar aba / refresh de token)
+        if (newUserId === prevUserIdRef.current) {
+          // Atualiza session object, mas não dispara fetch de profile nem toggle de loading
+          setSession(newSession);
+          setUser(newSession?.user ?? null);
+          return;
+        }
+
+        // Houve mudança de usuário (login/logout), atualizamos e buscamos profile
+        prevUserIdRef.current = newUserId;
+        setLoading(true);
+        await handleAuthState(newSession);
+      } catch (err) {
+        console.error('Error handling auth state change:', err);
         if (isMounted) {
-          setLoading(false); // Fallback para garantir que o carregamento termine
+          setLoading(false);
         }
       }
     });
 
-    // Cleanup
     return () => {
       isMounted = false;
       try {
-        const maybeSub: any = listenerData;
-        if (maybeSub?.subscription?.unsubscribe) {
-          maybeSub.subscription.unsubscribe();
-        } else if (typeof maybeSub?.unsubscribe === 'function') {
-          maybeSub.unsubscribe();
+        const sub: any = listenerData;
+        if (sub?.subscription?.unsubscribe) {
+          sub.subscription.unsubscribe();
+        } else if (typeof sub?.unsubscribe === 'function') {
+          sub.unsubscribe();
         }
       } catch (e) {
         console.warn('Failed to cleanup auth listener:', e);
       }
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const value: AuthContextType = {
