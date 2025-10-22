@@ -7,27 +7,6 @@ import { Input } from "@/components/ui/input";
 import { showError, showSuccess } from "@/utils/toast";
 import { Loader2, Eye, EyeOff } from "lucide-react";
 
-/**
- * Try to get the current session from Supabase, polling a few times with small delays.
- * Returns the session if found, or null if not.
- */
-const waitForSession = async (retries = 6, delayMs = 300) => {
-  for (let i = 0; i < retries; i++) {
-    try {
-      const { data } = await supabase.auth.getSession();
-      if (data?.session) {
-        return data.session;
-      }
-    } catch (err) {
-      // swallow and retry
-      console.warn("getSession attempt failed:", err);
-    }
-    // wait before next attempt
-    await new Promise((res) => setTimeout(res, delayMs));
-  }
-  return null;
-};
-
 const translateSupabaseError = (message: string) => {
   const m = (message || "").toLowerCase();
   if (m.includes("email not confirmed") || m.includes("email not verified")) {
@@ -43,35 +22,6 @@ const translateSupabaseError = (message: string) => {
     return "Muitas tentativas. Aguarde e tente novamente mais tarde.";
   }
   return "Ocorreu um erro ao tentar fazer login. Tente novamente.";
-};
-
-const trySetClientSession = async (session: any) => {
-  if (!session) return false;
-  try {
-    // If session contains access_token / refresh_token, set it explicitly on client
-    const access_token = (session as any).access_token ?? (session as any).accessToken ?? null;
-    const refresh_token = (session as any).refresh_token ?? (session as any).refreshToken ?? null;
-
-    if (access_token && refresh_token) {
-      // setSession accepts { access_token, refresh_token }
-      const { error } = await supabase.auth.setSession({
-        access_token,
-        refresh_token,
-      });
-      if (error) {
-        console.warn("supabase.auth.setSession returned error:", error);
-        return false;
-      }
-      console.info("Client session set via supabase.auth.setSession");
-      return true;
-    } else {
-      console.warn("Session object lacked tokens to set on client:", session);
-      return false;
-    }
-  } catch (err) {
-    console.error("Error while trying to set client session:", err);
-    return false;
-  }
 };
 
 const Login = () => {
@@ -91,7 +41,6 @@ const Login = () => {
     setSubmitting(true);
 
     try {
-      console.info("Attempting signInWithPassword for", email);
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -105,34 +54,12 @@ const Login = () => {
         return;
       }
 
-      console.info("signInWithPassword result:", data);
-
-      // If signInWithPassword returned a session, try to set it explicitly on the client and redirect.
-      if (data?.session) {
-        const setOk = await trySetClientSession(data.session);
+      // Se o login foi bem-sucedido (data.session ou data.user existe), redirecionamos.
+      if (data?.session || data?.user) {
         showSuccess("Login realizado com sucesso!");
-        if (!setOk) {
-          console.warn("Could not set session explicitly; still attempting hard redirect.");
-        }
-        handleSuccessfulLogin();
-        return;
-      }
-
-      // Otherwise poll getSession briefly to allow auth to propagate
-      console.info("Login: session not returned immediately, polling for session...");
-      const session = await waitForSession(6, 300);
-
-      if (session) {
-        console.info("Login: session found after polling.", session);
-        // Attempt to explicitly set client session in case persistence didn't happen automatically
-        const setOk = await trySetClientSession(session);
-        showSuccess("Login realizado com sucesso!");
-        if (!setOk) {
-          console.warn("Polling found session but client setSession failed; redirecting anyway.");
-        }
         handleSuccessfulLogin();
       } else {
-        console.error("Login attempt did not produce a session. signIn response:", data);
+        // Caso raro onde não há erro, mas também não há sessão/usuário (pode ser e-mail não confirmado)
         showError("Não foi possível iniciar a sessão. Verifique seu e-mail/senha ou confirme seu e-mail.");
       }
     } catch (err) {

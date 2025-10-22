@@ -62,36 +62,33 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [procedures, setProcedures] = useState<Procedure[]>([]);
   const [loadingProcedures, setLoadingProcedures] = useState(true);
 
-  // Garante que tratemos a inicialização apenas uma vez
-  const initializedRef = useRef(false);
-  // Guarda o timeout para fallback
-  const initTimeoutRef = useRef<number | null>(null);
-
   const logout = async () => {
     await supabase.auth.signOut();
   };
 
-  useEffect(() => {
-    const fetchProfile = async (userId: string | undefined): Promise<Profile | null> => {
-      if (!userId) return null;
-      try {
-        const { data: profileData, error } = await supabase
-          .from('usuarios')
-          .select('*')
-          .eq('id', userId)
-          .single();
+  // Função para buscar o perfil do usuário
+  const fetchProfile = async (userId: string | undefined): Promise<Profile | null> => {
+    if (!userId) return null;
+    try {
+      const { data: profileData, error } = await supabase
+        .from('usuarios')
+        .select('*')
+        .eq('id', userId)
+        .single();
 
-        if (error && (error as any).code !== 'PGRST116') {
-          console.error('Error fetching profile:', error);
-          return null;
-        }
-        return profileData as Profile | null;
-      } catch (err) {
-        console.error('Unexpected error fetching profile:', err);
+      if (error && (error as any).code !== 'PGRST116') {
+        console.error('Error fetching profile:', error);
         return null;
       }
-    };
+      return profileData as Profile | null;
+    } catch (err) {
+      console.error('Unexpected error fetching profile:', err);
+      return null;
+    }
+  };
 
+  // Efeito para carregar dados estáticos (cores/procedimentos)
+  useEffect(() => {
     const fetchVitaColors = async () => {
       setLoadingVitaColors(true);
       try {
@@ -128,81 +125,74 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       }
     };
 
-    // Fallback: se a inicialização travar, removemos o loading após 5s para não bloquear a UI indefinidamente
-    const startInitFallback = () => {
-      // window.setTimeout returns a number; guardamos no ref para limpar depois
-      initTimeoutRef.current = window.setTimeout(() => {
-        if (!initializedRef.current) {
-          initializedRef.current = true;
-          setLoading(false);
-          console.warn('Auth initialization fallback triggered: forcing loading=false');
-        }
-      }, 5000);
-    };
-
-    // 1. carregar dados estáticos (cores/procedimentos) em background
     fetchVitaColors();
     fetchProcedures();
+  }, []);
 
-    // 2. inicialização da sessão (uma vez)
+  // Efeito principal para gerenciar a sessão e o perfil
+  useEffect(() => {
+    let isMounted = true;
+
+    // 1. Inicialização da sessão
     const initializeSession = async () => {
       try {
-        const {
-          data: { session: initialSession },
-        } = await supabase.auth.getSession();
+        const { data: { session: initialSession } } = await supabase.auth.getSession();
+        
+        if (!isMounted) return;
+
         setSession(initialSession);
-        setUser(initialSession?.user ?? null);
-        if (initialSession?.user) {
-          const profileData = await fetchProfile(initialSession.user.id);
-          setProfile(profileData);
+        const currentUser = initialSession?.user ?? null;
+        setUser(currentUser);
+
+        if (currentUser) {
+          const profileData = await fetchProfile(currentUser.id);
+          if (isMounted) setProfile(profileData);
         } else {
-          setProfile(null);
+          if (isMounted) setProfile(null);
         }
       } catch (e) {
         console.error('Error initializing session:', e);
-        setSession(null);
-        setUser(null);
-        setProfile(null);
+        if (isMounted) {
+          setSession(null);
+          setUser(null);
+          setProfile(null);
+        }
       } finally {
-        initializedRef.current = true;
-        setLoading(false);
+        if (isMounted) {
+          setLoading(false);
+          console.log('AuthContext initialized. Loading set to false.');
+        }
       }
     };
 
-    // start fallback timer and initialize
-    startInitFallback();
     initializeSession();
 
-    // 3. listener para mudanças de autenticação
-    const { data: listenerData } = supabase.auth.onAuthStateChange(async (_event, newSession) => {
-      try {
-        setSession(newSession);
-        setUser(newSession?.user ?? null);
+    // 2. Listener para mudanças de autenticação
+    const { data: listenerData } = supabase.auth.onAuthStateChange(async (event, newSession) => {
+      if (!isMounted) return;
+      
+      console.log('Auth State Change Event:', event);
+      
+      setSession(newSession);
+      const currentUser = newSession?.user ?? null;
+      setUser(currentUser);
 
-        if (newSession?.user) {
-          const profileData = await fetchProfile(newSession.user.id);
-          setProfile(profileData);
-        } else {
-          setProfile(null);
-        }
-      } catch (err) {
-        console.error('Error handling auth state change:', err);
-      } finally {
-        if (!initializedRef.current) {
-          initializedRef.current = true;
-          setLoading(false);
-        }
+      if (currentUser) {
+        const profileData = await fetchProfile(currentUser.id);
+        if (isMounted) setProfile(profileData);
+      } else {
+        if (isMounted) setProfile(null);
+      }
+      
+      // Se o evento for SIGNED_IN, garantimos que o loading seja falso
+      if (event === 'SIGNED_IN' || event === 'SIGNED_OUT') {
+        setLoading(false);
       }
     });
 
-    // Cleanup: cancelar timeout e unsubscribes
+    // Cleanup
     return () => {
-      if (initTimeoutRef.current) {
-        clearTimeout(initTimeoutRef.current);
-        initTimeoutRef.current = null;
-      }
-
-      // listenerData pode ser { subscription } ou conter método unsubscribe dependendo da versão
+      isMounted = false;
       try {
         const maybeSub: any = listenerData;
         if (maybeSub?.subscription?.unsubscribe) {
@@ -211,11 +201,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           maybeSub.unsubscribe();
         }
       } catch (e) {
-        // Não bloquear o unmount por erros aqui
         console.warn('Failed to cleanup auth listener:', e);
       }
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const value: AuthContextType = {
