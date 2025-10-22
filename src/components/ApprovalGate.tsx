@@ -38,7 +38,7 @@ const ApprovalGate = ({ children }: { children: React.ReactNode }) => {
           <AlertDialogFooter className="sm:justify-between items-center gap-2">
             <Button variant="outline" onClick={handleLogout} className="w-full sm:w-auto">Sair</Button>
             <AlertDialogAction asChild className="w-full sm:w-auto">
-              <a href="https://wa.me/5598933005102?text=Quero%20meu%20acesso%20de%207%20dias." target="_blank" rel="noopener noreferrer">
+              <a href="https://api.whatsapp.com/send?phone=5598933005102&text=Quero%20meu%20acesso%20de%2007%20dias" target="_blank" rel="noopener noreferrer">
                 Liberar Acesso
               </a>
             </AlertDialogAction>
