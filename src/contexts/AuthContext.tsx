@@ -2,7 +2,7 @@ import { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Session, User } from '@supabase/supabase-js';
 
-// Define um tipo para os dados do perfil
+// Tipos de perfil (simplificados com as colunas usadas)
 interface Profile {
   id: string;
   nome_completo: string | null;
@@ -15,14 +15,12 @@ interface Profile {
   ativo: boolean;
 }
 
-// Define um tipo para as cores Vita
 interface VitaColor {
   id: string;
   nome: string;
   hexadecimal: string;
 }
 
-// Define um tipo para os procedimentos
 interface Procedure {
   id: string;
   nome: string;
@@ -64,8 +62,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [procedures, setProcedures] = useState<Procedure[]>([]);
   const [loadingProcedures, setLoadingProcedures] = useState(true);
 
-  // Ref used to ensure we only treat the very first auth event as the "initialization"
+  // Garante que tratemos a inicialização apenas uma vez
   const initializedRef = useRef(false);
+  // Guarda o timeout para fallback
+  const initTimeoutRef = useRef<number | null>(null);
 
   const logout = async () => {
     await supabase.auth.signOut();
@@ -81,7 +81,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           .eq('id', userId)
           .single();
 
-        if (error && error.code !== 'PGRST116') {
+        if (error && (error as any).code !== 'PGRST116') {
           console.error('Error fetching profile:', error);
           return null;
         }
@@ -103,7 +103,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         if (error) throw error;
         setVitaColors(data || []);
       } catch (error) {
-        console.error("Error fetching vita colors in context:", error);
+        console.error('Error fetching vita colors in context:', error);
         setVitaColors([]);
       } finally {
         setLoadingVitaColors(false);
@@ -121,21 +121,35 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         if (error) throw error;
         setProcedures(data || []);
       } catch (error) {
-        console.error("Error fetching procedures in context:", error);
+        console.error('Error fetching procedures in context:', error);
         setProcedures([]);
       } finally {
         setLoadingProcedures(false);
       }
     };
 
-    // 1. Fetch static data first
+    // Fallback: se a inicialização travar, removemos o loading após 5s para não bloquear a UI indefinidamente
+    const startInitFallback = () => {
+      // window.setTimeout returns a number; guardamos no ref para limpar depois
+      initTimeoutRef.current = window.setTimeout(() => {
+        if (!initializedRef.current) {
+          initializedRef.current = true;
+          setLoading(false);
+          console.warn('Auth initialization fallback triggered: forcing loading=false');
+        }
+      }, 5000);
+    };
+
+    // 1. carregar dados estáticos (cores/procedimentos) em background
     fetchVitaColors();
     fetchProcedures();
 
-    // 2. Handle session initialization (one-time)
+    // 2. inicialização da sessão (uma vez)
     const initializeSession = async () => {
       try {
-        const { data: { session: initialSession } } = await supabase.auth.getSession();
+        const {
+          data: { session: initialSession },
+        } = await supabase.auth.getSession();
         setSession(initialSession);
         setUser(initialSession?.user ?? null);
         if (initialSession?.user) {
@@ -145,27 +159,26 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           setProfile(null);
         }
       } catch (e) {
-        console.error("Error initializing session:", e);
+        console.error('Error initializing session:', e);
         setSession(null);
         setUser(null);
         setProfile(null);
       } finally {
-        // mark initialization as done and clear loading
         initializedRef.current = true;
         setLoading(false);
       }
     };
 
+    // start fallback timer and initialize
+    startInitFallback();
     initializeSession();
 
-    // 3. Listen for auth state changes and only treat the first callback specially
-    const { data: listenerData } = supabase.auth.onAuthStateChange(async (event, newSession) => {
+    // 3. listener para mudanças de autenticação
+    const { data: listenerData } = supabase.auth.onAuthStateChange(async (_event, newSession) => {
       try {
-        // Update session and user immediately
         setSession(newSession);
         setUser(newSession?.user ?? null);
 
-        // If we have a user, fetch their profile
         if (newSession?.user) {
           const profileData = await fetchProfile(newSession.user.id);
           setProfile(profileData);
@@ -173,10 +186,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           setProfile(null);
         }
       } catch (err) {
-        console.error("Error handling auth state change:", err);
+        console.error('Error handling auth state change:', err);
       } finally {
-        // If this is the first auth callback we process, mark initialization done.
-        // Subsequent auth events shouldn't re-enable the global loading spinner.
         if (!initializedRef.current) {
           initializedRef.current = true;
           setLoading(false);
@@ -184,15 +195,30 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       }
     });
 
-    // 4. Cleanup subscription on unmount
+    // Cleanup: cancelar timeout e unsubscribes
     return () => {
-      if (listenerData && typeof (listenerData as any).subscription?.unsubscribe === 'function') {
-        (listenerData as any).subscription.unsubscribe();
+      if (initTimeoutRef.current) {
+        clearTimeout(initTimeoutRef.current);
+        initTimeoutRef.current = null;
+      }
+
+      // listenerData pode ser { subscription } ou conter método unsubscribe dependendo da versão
+      try {
+        const maybeSub: any = listenerData;
+        if (maybeSub?.subscription?.unsubscribe) {
+          maybeSub.subscription.unsubscribe();
+        } else if (typeof maybeSub?.unsubscribe === 'function') {
+          maybeSub.unsubscribe();
+        }
+      } catch (e) {
+        // Não bloquear o unmount por erros aqui
+        console.warn('Failed to cleanup auth listener:', e);
       }
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const value = {
+  const value: AuthContextType = {
     session,
     user,
     profile,
