@@ -153,24 +153,38 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     initializeSession();
 
-    // 3. Listen for auth state changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+    // 3. Listen for auth state changes (make subscription extraction safe)
+    const listener = supabase.auth.onAuthStateChange(
       async (_event, newSession) => {
-        setSession(newSession);
-        setUser(newSession?.user ?? null);
-        if (newSession?.user) {
-          const profileData = await fetchProfile(newSession.user.id);
-          setProfile(profileData);
-        } else {
-          setProfile(null);
+        try {
+          setSession(newSession);
+          setUser(newSession?.user ?? null);
+          if (newSession?.user) {
+            const profileData = await fetchProfile(newSession.user.id);
+            setProfile(profileData);
+          } else {
+            setProfile(null);
+          }
+        } catch (err) {
+          console.error("Error handling auth state change:", err);
+          // Ensure profile/user/session stay consistent
+        } finally {
+          // Make sure loading is cleared once we processed an auth event
+          setLoading(false);
         }
-        // No longer setting the main loading state here to avoid the bug
       }
     );
 
+    const subscription = (listener && (listener as any).data && (listener as any).data.subscription) || (listener as any)?.subscription || null;
+
     // 4. Cleanup subscription on unmount
     return () => {
-      subscription.unsubscribe();
+      if (subscription && typeof subscription.unsubscribe === 'function') {
+        subscription.unsubscribe();
+      } else if (listener && typeof (listener as any).unsubscribe === 'function') {
+        // fallback unsubscribe if API shape differs
+        (listener as any).unsubscribe();
+      }
     };
   }, []);
 
