@@ -15,11 +15,13 @@ import {
   DialogClose,
 } from "@/components/ui/dialog";
 import { cn } from '@/lib/utils';
+import CameraCapture from '@/components/CameraCapture';
 
 const Upload = () => {
   const [image, setImage] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [isDialogOpen, setDialogOpen] = useState(false);
+  const [isCameraOpen, setCameraOpen] = useState(false);
   const navigate = useNavigate();
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -44,7 +46,7 @@ const Upload = () => {
       setImage(file);
       const previewUrl = URL.createObjectURL(file);
       setPreview(previewUrl);
-      setDialogOpen(false); // Close dialog on successful selection
+      setDialogOpen(false);
     }
   }, []);
 
@@ -57,7 +59,7 @@ const Upload = () => {
     },
     maxSize: 10 * 1024 * 1024, // 10MB
     multiple: false,
-    noClick: true, // We will trigger click manually
+    noClick: true,
   });
 
   const handleRemoveImage = () => {
@@ -70,7 +72,6 @@ const Upload = () => {
 
   const handleProceed = () => {
     if (image) {
-      // Store image in session storage to pass to the next page
       const reader = new FileReader();
       reader.readAsDataURL(image);
       reader.onloadend = () => {
@@ -94,92 +95,105 @@ const Upload = () => {
   };
 
   const openCamera = () => {
-    if (inputRef.current) {
-      inputRef.current.setAttribute('capture', 'environment');
-      inputRef.current.click();
-    }
+    setDialogOpen(false);
+    setCameraOpen(true);
+  };
+
+  const handleCapture = (file: File) => {
+    setImage(file);
+    const previewUrl = URL.createObjectURL(file);
+    setPreview(previewUrl);
+    setCameraOpen(false);
   };
 
   return (
-    <div className="container mx-auto max-w-3xl py-8">
-      <Card>
-        <CardHeader>
-          <CardTitle>Carregar Imagem do Paciente</CardTitle>
-          <CardDescription>
-            Selecione ou tire uma foto do paciente para iniciar a simulação.
-            A imagem deve ser nítida e bem iluminada.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Dialog open={isDialogOpen} onOpenChange={setDialogOpen}>
-            <div
-              {...getRootProps()}
-              className={cn(
-                "border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors",
-                isDragActive ? "border-blue-600 bg-blue-50" : "border-gray-300 hover:border-blue-400",
-                "focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-              )}
-            >
-              <input {...getInputProps({ ref: inputRef })} />
-              {preview ? (
-                <div className="relative group">
-                  <img src={preview} alt="Pré-visualização" className="mx-auto max-h-64 rounded-md" />
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation(); // Prevent dialog from opening
-                      handleRemoveImage();
-                    }}
-                    className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1.5 opacity-0 group-hover:opacity-100 transition-opacity"
-                    aria-label="Remover imagem"
-                  >
-                    <X className="h-4 w-4" />
-                  </button>
-                </div>
-              ) : (
-                <DialogTrigger asChild>
-                  <div className="flex flex-col items-center text-blue-800">
-                    <UploadCloud className="h-12 w-12 text-blue-400 mb-4" />
-                    <p className="font-semibold text-lg">Arraste e solte a imagem aqui</p>
-                    <p className="text-sm text-muted-foreground my-2">ou</p>
-                    <Button type="button" variant="outline" className="text-blue-800 border-blue-800 hover:bg-blue-50 hover:text-blue-900">
-                      Clique para selecionar
-                    </Button>
+    <>
+      {isCameraOpen && (
+        <CameraCapture
+          onCapture={handleCapture}
+          onClose={() => setCameraOpen(false)}
+        />
+      )}
+      <div className="container mx-auto max-w-3xl py-8">
+        <Card>
+          <CardHeader>
+            <CardTitle>Carregar Imagem do Paciente</CardTitle>
+            <CardDescription>
+              Selecione ou tire uma foto do paciente para iniciar a simulação.
+              A imagem deve ser nítida e bem iluminada.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Dialog open={isDialogOpen} onOpenChange={setDialogOpen}>
+              <div
+                {...getRootProps()}
+                className={cn(
+                  "border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors",
+                  isDragActive ? "border-blue-600 bg-blue-50" : "border-gray-300 hover:border-blue-400",
+                  "focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                )}
+              >
+                <input {...getInputProps({ ref: inputRef })} />
+                {preview ? (
+                  <div className="relative group">
+                    <img src={preview} alt="Pré-visualização" className="mx-auto max-h-64 rounded-md" />
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleRemoveImage();
+                      }}
+                      className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                      aria-label="Remover imagem"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
                   </div>
-                </DialogTrigger>
-              )}
-            </div>
-            <DialogContent className="sm:max-w-[425px]">
-              <DialogHeader>
-                <DialogTitle>Escolha uma opção</DialogTitle>
-              </DialogHeader>
-              <div className="grid gap-4 py-4">
-                <Button onClick={openGallery} variant="outline">
-                  <ImageIcon className="mr-2 h-4 w-4" />
-                  Escolher da Galeria
-                </Button>
-                <Button onClick={openCamera} variant="outline">
-                  <Camera className="mr-2 h-4 w-4" />
-                  Tirar Foto com a Câmera
-                </Button>
+                ) : (
+                  <DialogTrigger asChild>
+                    <div className="flex flex-col items-center text-blue-800">
+                      <UploadCloud className="h-12 w-12 text-blue-400 mb-4" />
+                      <p className="font-semibold text-lg">Arraste e solte a imagem aqui</p>
+                      <p className="text-sm text-muted-foreground my-2">ou</p>
+                      <Button type="button" variant="outline" className="text-blue-800 border-blue-800 hover:bg-blue-50 hover:text-blue-900">
+                        Clique para selecionar
+                      </Button>
+                    </div>
+                  </DialogTrigger>
+                )}
               </div>
-              <DialogFooter>
-                <DialogClose asChild>
-                  <Button type="button" variant="secondary">
-                    Cancelar
+              <DialogContent className="sm:max-w-[425px]">
+                <DialogHeader>
+                  <DialogTitle>Escolha uma opção</DialogTitle>
+                </DialogHeader>
+                <div className="grid gap-4 py-4">
+                  <Button onClick={openGallery} variant="outline">
+                    <ImageIcon className="mr-2 h-4 w-4" />
+                    Escolher da Galeria
                   </Button>
-                </DialogClose>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
+                  <Button onClick={openCamera} variant="outline">
+                    <Camera className="mr-2 h-4 w-4" />
+                    Tirar Foto com a Câmera
+                  </Button>
+                </div>
+                <DialogFooter>
+                  <DialogClose asChild>
+                    <Button type="button" variant="secondary">
+                      Cancelar
+                    </Button>
+                  </DialogClose>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
 
-          <div className="mt-6 text-center">
-            <Button onClick={handleProceed} disabled={!image} size="lg">
-              Continuar
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
+            <div className="mt-6 text-center">
+              <Button onClick={handleProceed} disabled={!image} size="lg">
+                Continuar
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    </>
   );
 };
 
