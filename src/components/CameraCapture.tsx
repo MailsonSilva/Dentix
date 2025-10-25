@@ -151,17 +151,16 @@ const CameraCapture: React.FC<CameraCaptureProps> = ({ onCapture, onClose }) => 
       </div>
 
       {zoomCapabilities && (
-        <div className="absolute right-4 top-1/2 -translate-y-1/2 h-1/3 flex flex-col items-center justify-center bg-black/30 p-2 rounded-full backdrop-blur-sm">
-          <ZoomOut className="text-white h-6 w-6 mb-2" />
+        <div className="absolute bottom-32 left-1/2 -translate-x-1/2 w-2/3 max-w-xs flex items-center gap-4 bg-black/30 p-2 rounded-full backdrop-blur-sm">
+          <ZoomOut className="text-white h-6 w-6" />
           <Slider
-            orientation="vertical"
             min={zoomCapabilities.min}
             max={zoomCapabilities.max}
             step={zoomCapabilities.step}
             value={[zoom]}
             onValueChange={handleZoomChange}
           />
-          <ZoomIn className="text-white h-6 w-6 mt-2" />
+          <ZoomIn className="text-white h-6 w-6" />
         </div>
       )}
 
