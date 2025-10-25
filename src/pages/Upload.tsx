@@ -1,146 +1,193 @@
-import { useState, useCallback, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useCallback, useRef } from 'react';
 import { useDropzone } from 'react-dropzone';
-import { UploadCloud, CheckCircle, Loader2 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { supabase } from '@/integrations/supabase/client';
-import { showError } from '@/utils/toast';
+import { UploadCloud, X, Image as ImageIcon, Camera } from 'lucide-react';
+import { toast } from "sonner";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogFooter,
+  DialogClose,
+} from "@/components/ui/dialog";
+import { cn } from '@/lib/utils';
 
 const Upload = () => {
-  const [imageFile, setImageFile] = useState<File | null>(null);
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
-  const [vitaColors, setVitaColors] = useState<any[]>([]);
-  const [selectedVitaColor, setSelectedVitaColor] = useState<string | null>(null);
-  const [loadingColors, setLoadingColors] = useState(true);
+  const [image, setImage] = useState<File | null>(null);
+  const [preview, setPreview] = useState<string | null>(null);
+  const [isDialogOpen, setDialogOpen] = useState(false);
   const navigate = useNavigate();
+  const inputRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
-    const fetchVitaColors = async () => {
-      setLoadingColors(true);
-      const { data, error } = await supabase
-        .from('cores_vita')
-        .select('*')
-        .eq('ativo', true)
-        .order('nome');
+  const onDrop = useCallback((acceptedFiles: File[], fileRejections: any[]) => {
+    if (fileRejections.length > 0) {
+      fileRejections.forEach(({ errors }) => {
+        errors.forEach((err: any) => {
+          if (err.code === "file-too-large") {
+            toast.error("Arquivo muito grande. O tamanho máximo é 10MB.");
+          } else if (err.code === "file-invalid-type") {
+            toast.error("Tipo de arquivo inválido. Use JPEG, PNG, ou WEBP.");
+          } else {
+            toast.error(`Erro: ${err.message}`);
+          }
+        });
+      });
+      return;
+    }
 
-      if (error) {
-        console.error('Error fetching VITA colors:', error);
-        showError("Não foi possível carregar as cores VITA.");
-      } else {
-        setVitaColors(data);
-      }
-      setLoadingColors(false);
-    };
-
-    fetchVitaColors();
-  }, []);
-
-  const onDrop = useCallback((acceptedFiles: File[]) => {
-    const file = acceptedFiles[0];
-    if (file) {
-      setImageFile(file);
-      setImagePreview(URL.createObjectURL(file));
+    if (acceptedFiles.length > 0) {
+      const file = acceptedFiles[0];
+      setImage(file);
+      const previewUrl = URL.createObjectURL(file);
+      setPreview(previewUrl);
+      setDialogOpen(false); // Close dialog on successful selection
     }
   }, []);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
-    accept: { 'image/*': ['.jpeg', '.png', '.jpg'] },
+    accept: {
+      'image/jpeg': [],
+      'image/png': [],
+      'image/webp': [],
+    },
+    maxSize: 10 * 1024 * 1024, // 10MB
     multiple: false,
+    noClick: true, // We will trigger click manually
   });
 
-  const handleNext = () => {
-    if (imageFile && imagePreview) {
-      navigate('/select-procedure', {
-        state: {
-          imageFile,
-          imagePreview,
-          vitaColor: selectedVitaColor,
-        },
-      });
+  const { ref: dropzoneInputRef, ...inputProps } = getInputProps();
+
+  // Combine refs to get access to the input element
+  const combinedRef = useCallback((node: HTMLInputElement) => {
+    dropzoneInputRef(node);
+    inputRef.current = node;
+  }, [dropzoneInputRef]);
+
+
+  const handleRemoveImage = () => {
+    if (preview) {
+      URL.revokeObjectURL(preview);
+    }
+    setImage(null);
+    setPreview(null);
+  };
+
+  const handleProceed = () => {
+    if (image) {
+      // Store image in session storage to pass to the next page
+      const reader = new FileReader();
+      reader.readAsDataURL(image);
+      reader.onloadend = () => {
+        sessionStorage.setItem('uploadedImage', reader.result as string);
+        sessionStorage.setItem('imageName', image.name);
+        navigate('/select-procedure');
+      };
+      reader.onerror = () => {
+        toast.error("Não foi possível processar a imagem. Tente novamente.");
+      };
     } else {
-      showError("Por favor, selecione uma imagem.");
+      toast.warning("Por favor, selecione uma imagem para continuar.");
+    }
+  };
+
+  const openGallery = () => {
+    if (inputRef.current) {
+      inputRef.current.removeAttribute('capture');
+      inputRef.current.click();
+    }
+  };
+
+  const openCamera = () => {
+    if (inputRef.current) {
+      inputRef.current.setAttribute('capture', 'environment');
+      inputRef.current.click();
     }
   };
 
   return (
-    <div className="max-w-3xl mx-auto py-10 px-5">
-      <div className="text-center mb-8">
-        <h1 className="text-3xl md:text-4xl font-bold mb-2">Simulador de Sorriso</h1>
-        <p className="text-muted-foreground text-md md:text-lg">
-          Visualize seu novo sorriso em tempo real. Faça o upload da sua foto.
-        </p>
-      </div>
-
-      <div
-        {...getRootProps()}
-        className={`border-2 border-dashed rounded-xl p-8 md:p-12 text-center cursor-pointer transition-colors
-          ${isDragActive ? 'border-blue-500 bg-blue-50' : 'border-blue-300 hover:border-blue-400 bg-blue-50/50'}
-          ${imagePreview ? 'border-green-500 bg-green-50' : ''}`}
-      >
-        <input {...getInputProps()} />
-        {imagePreview ? (
-          <div className="relative">
-            <img src={imagePreview} alt="Preview" className="mx-auto max-h-64 rounded-lg" />
-            <div className="absolute top-2 right-2 bg-white rounded-full p-1 shadow">
-              <CheckCircle className="text-green-500" />
+    <div className="container mx-auto max-w-3xl py-8">
+      <Card>
+        <CardHeader>
+          <CardTitle>Carregar Imagem do Paciente</CardTitle>
+          <CardDescription>
+            Selecione ou tire uma foto do paciente para iniciar a simulação.
+            A imagem deve ser nítida e bem iluminada.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Dialog open={isDialogOpen} onOpenChange={setDialogOpen}>
+            <div
+              {...getRootProps()}
+              className={cn(
+                "border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors",
+                isDragActive ? "border-blue-600 bg-blue-50" : "border-gray-300 hover:border-blue-400",
+                "focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              )}
+            >
+              <input {...inputProps} ref={combinedRef} />
+              {preview ? (
+                <div className="relative group">
+                  <img src={preview} alt="Pré-visualização" className="mx-auto max-h-64 rounded-md" />
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation(); // Prevent dialog from opening
+                      handleRemoveImage();
+                    }}
+                    className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                    aria-label="Remover imagem"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+              ) : (
+                <DialogTrigger asChild>
+                  <div className="flex flex-col items-center text-blue-800">
+                    <UploadCloud className="h-12 w-12 text-blue-400 mb-4" />
+                    <p className="font-semibold text-lg">Arraste e solte a imagem aqui</p>
+                    <p className="text-sm text-muted-foreground my-2">ou</p>
+                    <Button type="button" variant="outline" className="text-blue-800 border-blue-800 hover:bg-blue-50 hover:text-blue-900">
+                      Clique para selecionar
+                    </Button>
+                  </div>
+                </DialogTrigger>
+              )}
             </div>
-          </div>
-        ) : (
-          <div className="flex flex-col items-center text-blue-800">
-            <UploadCloud className="h-12 w-12 text-blue-400 mb-4" />
-            <p className="font-semibold text-lg">Arraste e solte a imagem aqui</p>
-            <p className="text-sm text-muted-foreground my-2">ou</p>
-            <Button variant="secondary" size="sm" className="pointer-events-none">
-              Clique para Selecionar
+            <DialogContent className="sm:max-w-[425px]">
+              <DialogHeader>
+                <DialogTitle>Escolha uma opção</DialogTitle>
+              </DialogHeader>
+              <div className="grid gap-4 py-4">
+                <Button onClick={openGallery} variant="outline">
+                  <ImageIcon className="mr-2 h-4 w-4" />
+                  Escolher da Galeria
+                </Button>
+                <Button onClick={openCamera} variant="outline">
+                  <Camera className="mr-2 h-4 w-4" />
+                  Tirar Foto com a Câmera
+                </Button>
+              </div>
+              <DialogFooter>
+                <DialogClose asChild>
+                  <Button type="button" variant="secondary">
+                    Cancelar
+                  </Button>
+                </DialogClose>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+
+          <div className="mt-6 text-center">
+            <Button onClick={handleProceed} disabled={!image} size="lg">
+              Continuar
             </Button>
-            <p className="text-xs text-muted-foreground mt-4">
-              Formatos aceitos: PNG, JPG, JPEG
-            </p>
           </div>
-        )}
-      </div>
-
-      <div className="mt-8">
-        <p className="font-semibold text-center mb-4">Escolha a cor base do dente (Opcional)</p>
-        <div className="bg-gray-50 p-4 rounded-xl border w-full">
-          {loadingColors ? (
-            <div className="flex justify-center items-center h-24">
-              <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
-            </div>
-          ) : vitaColors.length > 0 ? (
-            <div className="flex flex-wrap items-center justify-center gap-4 p-2">
-              {vitaColors.map((color) => (
-                <button
-                  key={color.id}
-                  title={color.nome}
-                  onClick={() => setSelectedVitaColor(color.hexadecimal)}
-                  className={`flex-shrink-0 w-10 h-10 rounded-full border-2 shadow-sm transition-all transform hover:scale-110 focus:outline-none 
-                    ${selectedVitaColor === color.hexadecimal 
-                      ? 'ring-2 ring-offset-2 ring-blue-500 scale-110' 
-                      : 'border-gray-200'
-                    }`}
-                  style={{ backgroundColor: color.hexadecimal }}
-                >
-                </button>
-              ))}
-            </div>
-          ) : (
-            <p className="text-muted-foreground text-center">Nenhuma cor disponível.</p>
-          )}
-        </div>
-      </div>
-
-      <div className="mt-8 text-center">
-        <Button 
-          onClick={handleNext} 
-          disabled={!imageFile} 
-          size="lg"
-          className="w-full sm:w-auto"
-        >
-          Avançar
-        </Button>
-      </div>
+        </CardContent>
+      </Card>
     </div>
   );
 };
