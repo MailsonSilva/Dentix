@@ -30,23 +30,52 @@ const CameraCapture: React.FC<CameraCaptureProps> = ({ onCapture, onClose }) => 
       stream.getTracks().forEach(track => track.stop());
     }
 
+    const constraints: MediaStreamConstraints = {
+      video: {
+        facingMode: mode,
+        width: { ideal: 1920 },
+        height: { ideal: 1080 },
+      },
+      audio: false,
+    };
+
     try {
-      const newStream = await navigator.mediaDevices.getUserMedia({
-        video: {
-          facingMode: { exact: mode },
-          width: { ideal: 1920 },
-          height: { ideal: 1080 },
-        },
-        audio: false,
-      });
+      const newStream = await navigator.mediaDevices.getUserMedia(constraints);
       setStream(newStream);
       if (videoRef.current) {
         videoRef.current.srcObject = newStream;
       }
     } catch (err) {
-      console.error("Error accessing camera:", err);
-      toast.error("Não foi possível acessar a câmera. Verifique as permissões.");
-      onClose();
+      console.warn(`Falha ao obter câmera com facingMode: ${mode}. Tentando fallback.`, err);
+      
+      const fallbackConstraints: MediaStreamConstraints = {
+        video: {
+          width: { ideal: 1920 },
+          height: { ideal: 1080 },
+        },
+        audio: false,
+      };
+
+      try {
+        const newStream = await navigator.mediaDevices.getUserMedia(fallbackConstraints);
+        setStream(newStream);
+        if (videoRef.current) {
+          videoRef.current.srcObject = newStream;
+        }
+        setHasMultipleCameras(false);
+      } catch (fallbackErr) {
+        console.error("Erro ao acessar a câmera (mesmo com fallback):", fallbackErr);
+        let errorMessage = "Não foi possível acessar a câmera. Verifique as permissões do seu navegador.";
+        if (fallbackErr instanceof DOMException) {
+            if (fallbackErr.name === "NotAllowedError") {
+                errorMessage = "Permissão para acessar a câmera foi negada.";
+            } else if (fallbackErr.name === "NotFoundError") {
+                errorMessage = "Nenhuma câmera foi encontrada no seu dispositivo.";
+            }
+        }
+        toast.error(errorMessage);
+        onClose();
+      }
     }
   }, [stream, onClose]);
 
