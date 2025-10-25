@@ -1,6 +1,7 @@
 import React, { useRef, useState, useEffect, useCallback } from 'react';
 import { Button } from './ui/button';
-import { Camera, X, RefreshCw } from 'lucide-react';
+import { Camera, X, RefreshCw, ZoomIn, ZoomOut } from 'lucide-react';
+import { Slider } from "@/components/ui/slider";
 import { toast } from 'sonner';
 
 interface CameraCaptureProps {
@@ -14,6 +15,8 @@ const CameraCapture: React.FC<CameraCaptureProps> = ({ onCapture, onClose }) => 
   const [stream, setStream] = useState<MediaStream | null>(null);
   const [facingMode, setFacingMode] = useState<'user' | 'environment'>('environment');
   const [hasMultipleCameras, setHasMultipleCameras] = useState(false);
+  const [zoom, setZoom] = useState(1);
+  const [zoomCapabilities, setZoomCapabilities] = useState<any>(null);
 
   useEffect(() => {
     navigator.mediaDevices.enumerateDevices()
@@ -30,6 +33,23 @@ const CameraCapture: React.FC<CameraCaptureProps> = ({ onCapture, onClose }) => 
       stream.getTracks().forEach(track => track.stop());
     }
 
+    const processStream = (newStream: MediaStream) => {
+      setStream(newStream);
+      if (videoRef.current) {
+        videoRef.current.srcObject = newStream;
+      }
+      const videoTrack = newStream.getVideoTracks()[0];
+      if (videoTrack) {
+        const capabilities = videoTrack.getCapabilities();
+        if ('zoom' in capabilities) {
+          setZoomCapabilities(capabilities.zoom);
+          setZoom((capabilities.zoom as any).min);
+        } else {
+          setZoomCapabilities(null);
+        }
+      }
+    };
+
     const constraints: MediaStreamConstraints = {
       video: {
         facingMode: mode,
@@ -41,37 +61,26 @@ const CameraCapture: React.FC<CameraCaptureProps> = ({ onCapture, onClose }) => 
 
     try {
       const newStream = await navigator.mediaDevices.getUserMedia(constraints);
-      setStream(newStream);
-      if (videoRef.current) {
-        videoRef.current.srcObject = newStream;
-      }
+      processStream(newStream);
     } catch (err) {
       console.warn(`Falha ao obter câmera com facingMode: ${mode}. Tentando fallback.`, err);
-      
       const fallbackConstraints: MediaStreamConstraints = {
-        video: {
-          width: { ideal: 1920 },
-          height: { ideal: 1080 },
-        },
+        video: { width: { ideal: 1920 }, height: { ideal: 1080 } },
         audio: false,
       };
-
       try {
         const newStream = await navigator.mediaDevices.getUserMedia(fallbackConstraints);
-        setStream(newStream);
-        if (videoRef.current) {
-          videoRef.current.srcObject = newStream;
-        }
+        processStream(newStream);
         setHasMultipleCameras(false);
       } catch (fallbackErr) {
         console.error("Erro ao acessar a câmera (mesmo com fallback):", fallbackErr);
         let errorMessage = "Não foi possível acessar a câmera. Verifique as permissões do seu navegador.";
         if (fallbackErr instanceof DOMException) {
-            if (fallbackErr.name === "NotAllowedError") {
-                errorMessage = "Permissão para acessar a câmera foi negada.";
-            } else if (fallbackErr.name === "NotFoundError") {
-                errorMessage = "Nenhuma câmera foi encontrada no seu dispositivo.";
-            }
+          if (fallbackErr.name === "NotAllowedError") {
+            errorMessage = "Permissão para acessar a câmera foi negada.";
+          } else if (fallbackErr.name === "NotFoundError") {
+            errorMessage = "Nenhuma câmera foi encontrada no seu dispositivo.";
+          }
         }
         toast.error(errorMessage);
         onClose();
@@ -81,13 +90,11 @@ const CameraCapture: React.FC<CameraCaptureProps> = ({ onCapture, onClose }) => 
 
   useEffect(() => {
     startCamera(facingMode);
-
     return () => {
       if (stream) {
         stream.getTracks().forEach(track => track.stop());
       }
     };
-    // This effect should only run when facingMode changes or the component mounts.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [facingMode]);
 
@@ -95,10 +102,8 @@ const CameraCapture: React.FC<CameraCaptureProps> = ({ onCapture, onClose }) => 
     if (videoRef.current && canvasRef.current) {
       const video = videoRef.current;
       const canvas = canvasRef.current;
-      
       canvas.width = video.videoWidth;
       canvas.height = video.videoHeight;
-
       const context = canvas.getContext('2d');
       if (context) {
         context.drawImage(video, 0, 0, video.videoWidth, video.videoHeight);
@@ -116,6 +121,17 @@ const CameraCapture: React.FC<CameraCaptureProps> = ({ onCapture, onClose }) => 
     setFacingMode(prev => (prev === 'user' ? 'environment' : 'user'));
   };
 
+  const handleZoomChange = (newZoomValue: number[]) => {
+    const newZoom = newZoomValue[0];
+    if (!stream) return;
+    const videoTrack = stream.getVideoTracks()[0];
+    if (videoTrack && 'zoom' in videoTrack.getCapabilities()) {
+      videoTrack.applyConstraints({ advanced: [{ zoom: newZoom }] })
+        .then(() => setZoom(newZoom))
+        .catch((error) => console.error("Error applying zoom:", error));
+    }
+  };
+
   return (
     <div className="fixed inset-0 bg-black z-50 flex flex-col items-center justify-center">
       <video
@@ -127,12 +143,27 @@ const CameraCapture: React.FC<CameraCaptureProps> = ({ onCapture, onClose }) => 
       
       <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
         <div 
-          className="w-[70vw] max-w-[400px] aspect-[3/4] border-4 border-white/50 border-dashed rounded-[50%]"
+          className="w-[85vw] max-w-[500px] aspect-[3/4] border-4 border-white/50 border-dashed rounded-[50%]"
           style={{
             boxShadow: '0 0 0 9999px rgba(0, 0, 0, 0.5)',
           }}
         />
       </div>
+
+      {zoomCapabilities && (
+        <div className="absolute right-4 top-1/2 -translate-y-1/2 h-1/3 flex flex-col items-center justify-center bg-black/30 p-2 rounded-full backdrop-blur-sm">
+          <ZoomOut className="text-white h-6 w-6 mb-2" />
+          <Slider
+            orientation="vertical"
+            min={zoomCapabilities.min}
+            max={zoomCapabilities.max}
+            step={zoomCapabilities.step}
+            value={[zoom]}
+            onValueChange={handleZoomChange}
+          />
+          <ZoomIn className="text-white h-6 w-6 mt-2" />
+        </div>
+      )}
 
       <div className="absolute bottom-0 left-0 right-0 p-4 bg-black/30 flex justify-around items-center">
         <Button variant="ghost" size="icon" onClick={onClose} className="text-white hover:bg-white/20 rounded-full w-16 h-16">
@@ -146,7 +177,7 @@ const CameraCapture: React.FC<CameraCaptureProps> = ({ onCapture, onClose }) => 
             <RefreshCw size={32} />
           </Button>
         ) : (
-          <div className="w-16 h-16" /> // Placeholder to keep layout consistent
+          <div className="w-16 h-16" />
         )}
       </div>
 
