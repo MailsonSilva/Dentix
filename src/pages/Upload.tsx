@@ -66,7 +66,7 @@ const Upload = () => {
   return (
     <div className="max-w-3xl mx-auto py-10 px-5">
       <div className="text-center mb-8">
-        <h1 className="text-3xl md:text-4xl font-bold mb-2">🦷 Simulador de Sorriso 🌟</h1>
+        <h1 className="text-3xl md:text-4xl font-bold mb-2">Simulador de Sorriso</h1>
         <p className="text-muted-foreground text-md md:text-lg">
           Visualize seu novo sorriso em tempo real. Faça o upload da sua foto.
         </p>
