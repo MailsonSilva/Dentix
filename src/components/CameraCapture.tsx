@@ -143,7 +143,7 @@ const CameraCapture: React.FC<CameraCaptureProps> = ({ onCapture, onClose }) => 
       
       <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
         <div 
-          className="w-[85vw] max-w-[500px] aspect-[3/4] border-4 border-white/50 border-dashed rounded-[50%]"
+          className="w-[85vw] max-w-[500px] aspect-[2/3] border-4 border-white/50 border-dashed rounded-[50%]"
           style={{
             boxShadow: '0 0 0 9999px rgba(0, 0, 0, 0.5)',
           }}
