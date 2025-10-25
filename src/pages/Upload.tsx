@@ -60,15 +60,6 @@ const Upload = () => {
     noClick: true, // We will trigger click manually
   });
 
-  const { ref: dropzoneInputRef, ...inputProps } = getInputProps();
-
-  // Combine refs to get access to the input element
-  const combinedRef = useCallback((node: HTMLInputElement) => {
-    dropzoneInputRef(node);
-    inputRef.current = node;
-  }, [dropzoneInputRef]);
-
-
   const handleRemoveImage = () => {
     if (preview) {
       URL.revokeObjectURL(preview);
@@ -129,7 +120,7 @@ const Upload = () => {
                 "focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
               )}
             >
-              <input {...inputProps} ref={combinedRef} />
+              <input {...getInputProps({ ref: inputRef })} />
               {preview ? (
                 <div className="relative group">
                   <img src={preview} alt="Pré-visualização" className="mx-auto max-h-64 rounded-md" />
