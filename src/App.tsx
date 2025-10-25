@@ -46,7 +46,7 @@ function App() {
   return (
     <Router>
       <AuthProvider>
-        <Toaster />
+        <Toaster position="top-right" />
         <Routes>
           <Route element={<GuestRoute />}>
             <Route path="/" element={<Login />} />
