@@ -3,7 +3,7 @@ import { useDropzone } from 'react-dropzone';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { UploadCloud, X, Image as ImageIcon, Camera } from 'lucide-react';
+import { UploadCloud, X, Image as ImageIcon, Camera, Loader2 } from 'lucide-react';
 import { toast } from "sonner";
 import {
   Dialog,
@@ -18,7 +18,6 @@ import { cn } from '@/lib/utils';
 import CameraCapture from '@/components/CameraCapture';
 import { useAuth } from '@/contexts/AuthContext';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const Upload = () => {
   const [image, setImage] = useState<File | null>(null);
@@ -195,40 +194,41 @@ const Upload = () => {
             </Dialog>
 
             {preview && (
-              <div className="mt-6 space-y-6 animate-in fade-in duration-300">
+              <div className="mt-6 space-y-8 animate-in fade-in duration-300">
                 <div>
-                  <Label htmlFor="vita-color" className="font-semibold">Cor Vita (Opcional)</Label>
-                  <Select
-                    onValueChange={(value) => setSelectedVitaColor(value === 'none' ? undefined : value)}
-                    disabled={loadingVitaColors}
-                    value={selectedVitaColor}
-                  >
-                    <SelectTrigger id="vita-color" className="mt-2">
-                      <SelectValue placeholder={loadingVitaColors ? "Carregando cores..." : "Selecione uma cor"} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">Nenhuma</SelectItem>
-                      {vitaColors.map((color) => (
-                        <SelectItem key={color.id} value={color.nome}>
-                          <div className="flex items-center gap-2">
-                            <div
-                              className="w-4 h-4 rounded-full border"
-                              style={{ backgroundColor: color.hexadecimal }}
-                            />
-                            <span>{color.nome}</span>
-                          </div>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <p className="text-xs text-muted-foreground mt-2">
-                    A seleção de cor é utilizada em procedimentos como clareamento e facetas.
-                  </p>
+                  <Label className="font-semibold text-center block mb-4">Escolha a cor base do dente (Opcional)</Label>
+                  {loadingVitaColors ? (
+                    <div className="flex justify-center items-center h-20">
+                      <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                    </div>
+                  ) : (
+                    <div className="bg-card p-4 rounded-lg border">
+                      <div className="flex justify-center items-center gap-4 flex-wrap">
+                        {vitaColors.map((color) => (
+                          <button
+                            key={color.id}
+                            type="button"
+                            onClick={() => setSelectedVitaColor(color.nome === selectedVitaColor ? undefined : color.nome)}
+                            className={cn(
+                              "w-10 h-10 rounded-full border-2 transition-all duration-200 transform hover:scale-110",
+                              selectedVitaColor === color.nome
+                                ? "border-primary ring-2 ring-primary ring-offset-2"
+                                : "border-gray-200"
+                            )}
+                            style={{ backgroundColor: color.hexadecimal }}
+                            title={color.nome}
+                          >
+                            <span className="sr-only">{color.nome}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 <div className="text-center">
                   <Button onClick={handleProceed} disabled={!image} size="lg">
-                    Continuar
+                    Avançar
                   </Button>
                 </div>
               </div>
