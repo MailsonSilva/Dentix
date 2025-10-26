@@ -78,6 +78,8 @@ const Processing = () => {
                 originalImage: base64Image,
                 simulatedImage: simulatedImageUrl,
                 procedureId: procedureId,
+                procedureName: procedureName, // Passando o nome do procedimento
+                vitaColor: vitaColor,       // Passando a cor vita
               },
             });
             return; // Sucesso, sai da função
