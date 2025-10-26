@@ -155,7 +155,7 @@ const SimulationResult = () => {
                 ) : (
                   <RefreshCw className="mr-2 h-4 w-4" />
                 )}
-                Refazer
+                Refazer Simulação
               </Button>
               <Button variant="secondary" onClick={() => setIsSaveDialogOpen(true)} disabled={!originalImage || !currentSimulatedImage || !procedureId}>
                 Salvar Simulação
