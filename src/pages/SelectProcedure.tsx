@@ -22,6 +22,22 @@ const getProcedureIcon = (procedureName: string) => {
   return <Smile size={48} className="mx-auto mb-4 text-blue-500" />;
 };
 
+const dataURLtoFile = (dataurl: string, filename: string): File => {
+  const arr = dataurl.split(',');
+  if (arr.length < 2) {
+    throw new Error("Invalid data URL format");
+  }
+  const mimeMatch = arr[0].match(/:(.*?);/);
+  const mime = mimeMatch ? mimeMatch[1] : 'application/octet-stream';
+  const bstr = atob(arr[1]);
+  let n = bstr.length;
+  const u8arr = new Uint8Array(n);
+  while (n--) {
+    u8arr[n] = bstr.charCodeAt(n);
+  }
+  return new File([u8arr], filename, { type: mime });
+};
+
 const SelectProcedure = () => {
   const [procedures, setProcedures] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -29,14 +45,28 @@ const SelectProcedure = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const { imageFile, imagePreview, vitaColor } = location.state || {};
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const { vitaColor } = location.state || {};
 
   useEffect(() => {
-    if (!imageFile || !imagePreview) {
-      showError("Nenhuma imagem selecionada. Por favor, comece novamente.");
+    try {
+      const storedImage = sessionStorage.getItem('uploadedImage');
+      const storedImageName = sessionStorage.getItem('imageName');
+
+      if (storedImage && storedImageName) {
+        setImageFile(dataURLtoFile(storedImage, storedImageName));
+        setImagePreview(storedImage);
+      } else {
+        showError("Nenhuma imagem selecionada. Por favor, comece novamente.");
+        navigate('/upload');
+      }
+    } catch (error) {
+      console.error("Error processing image from session storage:", error);
+      showError("Erro ao carregar a imagem. Por favor, tente novamente.");
       navigate('/upload');
     }
-  }, [imageFile, imagePreview, navigate]);
+  }, [navigate]);
 
   useEffect(() => {
     const fetchProcedures = async () => {

@@ -16,6 +16,9 @@ import {
 } from "@/components/ui/dialog";
 import { cn } from '@/lib/utils';
 import CameraCapture from '@/components/CameraCapture';
+import { useAuth } from '@/contexts/AuthContext';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const Upload = () => {
   const [image, setImage] = useState<File | null>(null);
@@ -24,6 +27,8 @@ const Upload = () => {
   const [isCameraOpen, setCameraOpen] = useState(false);
   const navigate = useNavigate();
   const inputRef = useRef<HTMLInputElement>(null);
+  const [selectedVitaColor, setSelectedVitaColor] = useState<string | undefined>(undefined);
+  const { vitaColors, loadingVitaColors } = useAuth();
 
   const onDrop = useCallback((acceptedFiles: File[], fileRejections: any[]) => {
     if (fileRejections.length > 0) {
@@ -77,7 +82,11 @@ const Upload = () => {
       reader.onloadend = () => {
         sessionStorage.setItem('uploadedImage', reader.result as string);
         sessionStorage.setItem('imageName', image.name);
-        navigate('/select-procedure');
+        navigate('/select-procedure', {
+          state: {
+            vitaColor: selectedVitaColor,
+          },
+        });
       };
       reader.onerror = () => {
         toast.error("Não foi possível processar a imagem. Tente novamente.");
@@ -185,11 +194,45 @@ const Upload = () => {
               </DialogContent>
             </Dialog>
 
-            <div className="mt-6 text-center">
-              <Button onClick={handleProceed} disabled={!image} size="lg">
-                Continuar
-              </Button>
-            </div>
+            {preview && (
+              <div className="mt-6 space-y-6 animate-in fade-in duration-300">
+                <div>
+                  <Label htmlFor="vita-color" className="font-semibold">Cor Vita (Opcional)</Label>
+                  <Select
+                    onValueChange={(value) => setSelectedVitaColor(value === 'none' ? undefined : value)}
+                    disabled={loadingVitaColors}
+                    value={selectedVitaColor}
+                  >
+                    <SelectTrigger id="vita-color" className="mt-2">
+                      <SelectValue placeholder={loadingVitaColors ? "Carregando cores..." : "Selecione uma cor"} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Nenhuma</SelectItem>
+                      {vitaColors.map((color) => (
+                        <SelectItem key={color.id} value={color.nome}>
+                          <div className="flex items-center gap-2">
+                            <div
+                              className="w-4 h-4 rounded-full border"
+                              style={{ backgroundColor: color.hexadecimal }}
+                            />
+                            <span>{color.nome}</span>
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    A seleção de cor é utilizada em procedimentos como clareamento e facetas.
+                  </p>
+                </div>
+
+                <div className="text-center">
+                  <Button onClick={handleProceed} disabled={!image} size="lg">
+                    Continuar
+                  </Button>
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
