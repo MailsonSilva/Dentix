@@ -80,9 +80,13 @@ const Upload = () => {
       reader.onloadend = () => {
         sessionStorage.setItem('uploadedImage', reader.result as string);
         sessionStorage.setItem('imageName', image.name);
+
+        const selectedColorObject = vitaColors.find(c => c.nome === selectedVitaColor);
+        const vitaColorHex = selectedColorObject ? selectedColorObject.hexadecimal : undefined;
+
         navigate('/select-procedure', {
           state: {
-            vitaColor: selectedVitaColor,
+            vitaColor: vitaColorHex,
           },
         });
       };
