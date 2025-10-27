@@ -1,6 +1,6 @@
 import React, { useRef, useState, useEffect, useCallback } from 'react';
 import { Button } from './ui/button';
-import { Camera, X, RefreshCw, ZoomIn, ZoomOut } from 'lucide-react';
+import { Camera, X, ZoomIn, ZoomOut } from 'lucide-react';
 import { Slider } from "@/components/ui/slider";
 import { toast } from 'sonner';
 
@@ -13,20 +13,11 @@ const CameraCapture: React.FC<CameraCaptureProps> = ({ onCapture, onClose }) => 
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [stream, setStream] = useState<MediaStream | null>(null);
-  const [facingMode, setFacingMode] = useState<'user' | 'environment'>('environment');
-  const [hasMultipleCameras, setHasMultipleCameras] = useState(false);
+  const [facingMode] = useState<'user' | 'environment'>('environment'); // Mantendo 'environment' como padrão e fixo
   const [zoom, setZoom] = useState(1);
   const [zoomCapabilities, setZoomCapabilities] = useState<any>(null);
 
-  useEffect(() => {
-    navigator.mediaDevices.enumerateDevices()
-      .then(devices => {
-        const videoDevices = devices.filter(device => device.kind === 'videoinput');
-        if (videoDevices.length > 1) {
-          setHasMultipleCameras(true);
-        }
-      });
-  }, []);
+  // Removendo useEffect para verificar múltiplas câmeras e hasMultipleCameras state
 
   const startCamera = useCallback(async (mode: 'user' | 'environment') => {
     if (stream) {
@@ -71,7 +62,6 @@ const CameraCapture: React.FC<CameraCaptureProps> = ({ onCapture, onClose }) => 
       try {
         const newStream = await navigator.mediaDevices.getUserMedia(fallbackConstraints);
         processStream(newStream);
-        setHasMultipleCameras(false);
       } catch (fallbackErr) {
         console.error("Erro ao acessar a câmera (mesmo com fallback):", fallbackErr);
         let errorMessage = "Não foi possível acessar a câmera. Verifique as permissões do seu navegador.";
@@ -89,14 +79,15 @@ const CameraCapture: React.FC<CameraCaptureProps> = ({ onCapture, onClose }) => 
   }, [stream, onClose]);
 
   useEffect(() => {
-    startCamera(facingMode);
+    // Inicia a câmera apenas com o modo 'environment' (câmera traseira)
+    startCamera('environment');
     return () => {
       if (stream) {
         stream.getTracks().forEach(track => track.stop());
       }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [facingMode]);
+  }, []); // Dependência vazia para rodar apenas uma vez
 
   const handleCapture = () => {
     if (videoRef.current && canvasRef.current) {
@@ -117,9 +108,7 @@ const CameraCapture: React.FC<CameraCaptureProps> = ({ onCapture, onClose }) => 
     }
   };
 
-  const toggleCamera = () => {
-    setFacingMode(prev => (prev === 'user' ? 'environment' : 'user'));
-  };
+  // Removendo toggleCamera
 
   const handleZoomChange = (newZoomValue: number[]) => {
     const newZoom = newZoomValue[0];
@@ -171,13 +160,8 @@ const CameraCapture: React.FC<CameraCaptureProps> = ({ onCapture, onClose }) => 
         <Button onClick={handleCapture} className="w-20 h-20 rounded-full bg-white hover:bg-gray-200 border-4 border-black/50 p-2">
           <Camera size={40} className="text-black" />
         </Button>
-        {hasMultipleCameras ? (
-          <Button variant="ghost" size="icon" onClick={toggleCamera} className="text-white hover:bg-white/20 rounded-full w-16 h-16">
-            <RefreshCw size={32} />
-          </Button>
-        ) : (
-          <div className="w-16 h-16" />
-        )}
+        {/* Espaço vazio para manter o layout centralizado */}
+        <div className="w-16 h-16" />
       </div>
 
       <canvas ref={canvasRef} className="hidden" />
